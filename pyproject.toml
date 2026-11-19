@@ -1,0 +1,15 @@
+[project]
+name = "cartcompass"
+version = "0.1.0"
+description = "Find the real cheapest grocery near you: unit prices across nearby stores, from live store data."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+cartcompass = "cartcompass.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
