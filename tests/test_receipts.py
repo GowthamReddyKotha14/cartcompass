@@ -131,3 +131,4 @@ def test_far_or_old_receipts_are_left_out():
     save(db, parse_response(reply(WALMART)), where=(41.389, -83.656))
     assert nearby(db, (39.96, -82.99), 25)[0] == {}                               # Columbus is too far
     assert nearby(db, (41.38, -83.65), 10, today=date(2027, 3, 1))[1] == []       # prices too old
+

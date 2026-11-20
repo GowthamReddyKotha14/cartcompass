@@ -1,6 +1,7 @@
 """Find the cheapest real substitute for an item across nearby stores."""
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -55,12 +56,22 @@ def rank(offers: list[Offer], query: str) -> tuple[list[Choice], int, int]:
 
 
 def compare(client: KrogerClient, query: str, zip_code: str, radius_miles: int = 10,
-            max_stores: int = 5, per_store: int = 150) -> Comparison:
+            max_stores: int = 5, per_store: int = 150,
+            extra: tuple[dict[str, Store], list[Offer]] | None = None) -> Comparison:
+    """Live store prices for `query`, plus any `extra` (stores, offers) such as receipt prices."""
     stores = client.stores(zip_code, radius_miles=radius_miles, limit=max_stores)
     offers: list[Offer] = []
     for s in stores:
         for p in client.products(query, s.location_id, limit=per_store):
             offers.extend(from_product(s.location_id, p))
+    all_stores = {s.location_id: s for s in stores}
+    if extra:
+        all_stores.update(extra[0])
+        offers += [dataclasses.replace(o) for o in extra[1]]  # copies: ranking re-prices some offers
     choices, skipped, unpriced = rank(offers, query)
-    return Comparison(query, {s.location_id: s for s in stores}, choices, skipped, unpriced,
-                      [s.location_id for s in stores])
+    return Comparison(query, all_stores, choices, skipped, unpriced, list(all_stores))
+
+
+def live_only(offers: list[Offer]) -> list[Offer]:
+    """Offers seen today at a store's live catalog (not replayed from an older receipt)."""
+    return [o for o in offers if not o.store_id.startswith("receipt:")]
