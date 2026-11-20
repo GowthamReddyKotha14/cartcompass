@@ -30,6 +30,29 @@ KROGER_CLIENT_SECRET=...
 3. **In stock.** An out-of-stock shelf never wins.
 4. **Sale prices count**, and are labeled as sales.
 
+## Is the cheaper store worth the drive?
+
+```bash
+cartcompass plan milk eggs bread "chicken breast" --zip 43402 --max-stores 2
+```
+
+For each item it picks the ordinary kind (or what you name: `"2% milk"`,
+`"organic eggs"`), prices one typical package at every store, then tries every
+one- and two-store trip. Driving is charged per mile (`--per-mile`, default
+$0.20) on straight-line distance x 1.3, so a store 20 cents cheaper but 10 miles
+away loses, and the output says so:
+
+```
+Best trip: Kroger Bowling Green
+  groceries $2.69 + driving $0.63 (3.1 mi round trip) = $3.32
+
+Compared with:
+  Kroger Waterville      $7.34  (groceries $0.20 cheaper, driving $4.22 more)
+```
+
+(Example from the test data. Home is your ZIP's center from the Census
+Bureau's ZIP list, or `--home lat,lon`.)
+
 ## Is that sale real?
 
 Every search saves that day's prices to `data/prices.sqlite` on your machine.
@@ -42,8 +65,8 @@ cartcompass track      # record today's prices for an everyday basket
 make schedule          # macOS: do that every morning automatically
 ```
 
-**Status:** the live Kroger search and price history work. Next: other stores via receipt photos and
-whole-shopping-list trips.
+**Status:** live Kroger search, price history and trip planning work. Next:
+other stores (Walmart, Aldi, Meijer) from receipt photos.
 
 ## Data
 
