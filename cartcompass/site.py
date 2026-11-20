@@ -33,12 +33,24 @@ def offers_on(db: sqlite3.Connection, day: str) -> list[Offer]:
     return out
 
 
+def same_product(per_store: list[Offer]) -> bool:
+    return len({(o.description, o.size) for o in per_store}) == 1
+
+
+def pick(choices) -> list:
+    """Kinds worth reporting, best first: the exact same product compared at every
+    store beats a mix of similar products; then wider store coverage; then the
+    most listings (the everyday version). Niche kinds (two or more special traits,
+    like shelf-stable organic) are left out."""
+    ok = [c for c in choices if c.variant.plainness <= 1 and len(c.best_per_store()) >= 2]
+    return sorted(ok, key=lambda c: (not same_product(c.best_per_store()), -len(c.best_per_store()),
+                                     -len(c.offers)))
+
+
 def finding(offers: list[Offer], item: str, labels: dict[str, str]) -> dict | None:
     choices, _, _ = rank(offers, family_of(item))
-    for c in choices:
+    for c in pick(choices):
         per_store = c.best_per_store()
-        if len(per_store) < 2:
-            continue
         lo, hi = per_store[0], per_store[-1]
         trap = None
         sizes = [o for o in c.offers if o.available and o.unit_price and o.store_id == lo.store_id]
@@ -53,6 +65,7 @@ def finding(offers: list[Offer], item: str, labels: dict[str, str]) -> dict | No
             "stores": [{"store": labels.get(o.store_id, o.store_id), "unit_price": o.unit_price,
                         "price": o.price, "size": o.size, "product": o.description} for o in per_store],
             "spread": round(hi.unit_price / lo.unit_price - 1, 4),
+            "same_product": same_product(per_store),
             "trap": trap,
         }
     return None

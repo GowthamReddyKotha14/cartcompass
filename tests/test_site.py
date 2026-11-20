@@ -30,3 +30,15 @@ def test_site_findings_and_package(tmp_path):
     assert json.loads(js[len("window.FINDINGS = "):].rstrip().rstrip(";"))["day"] == "2026-11-19"
     names = zipfile.ZipFile(tmp_path / "docs" / "cartcompass.zip").namelist()
     assert "cartcompass/units.py" in names and "cartcompass/receipt_ocr.py" in names
+
+
+def test_identical_product_comparisons_are_preferred():
+    from cartcompass.compare import rank
+    from cartcompass.site import pick
+    offers = []
+    for store, desc, price in [("A", "Kroger® Grade A Large White Eggs", 2.29), ("B", "Kroger® Grade A Large White Eggs", 2.79),
+                               ("C", "Kroger® Grade A Large White Eggs", 2.49),
+                               ("A", "Kroger® Medium Grade A White Eggs", 1.99), ("B", "Kroger® Medium Grade A Brown Eggs", 2.19)]:
+        offers += from_product(store, product(desc + store, desc, "12 ct", price))
+    choices, _, _ = rank(offers, "eggs")
+    assert pick(choices)[0].variant.label() == "large eggs (store brand)"
