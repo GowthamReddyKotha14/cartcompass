@@ -9,109 +9,109 @@ window.FINDINGS = {
  "findings": [
   {
    "item": "milk",
-   "kind": "almond milk (name brand)",
+   "kind": "whole milk (store brand)",
    "unit": "gal",
    "stores": [
     {
-     "store": "Kroger Maumee",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze\u00ae Dairy Free Original Almond Milk"
-    },
-    {
-     "store": "Kroger Waterville",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze\u00ae Dairy Free Original Almond Milk"
-    },
-    {
      "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze\u00ae Dairy Free Original Almond Milk"
+     "unit_price": 2.29,
+     "price": 2.29,
+     "size": "1 gal",
+     "product": "Kroger\u00ae Vitamin D Whole Milk Gallon"
+    },
+    {
+     "store": "Kroger Maumee",
+     "unit_price": 2.69,
+     "price": 2.69,
+     "size": "1 gal",
+     "product": "Kroger\u00ae Vitamin D Whole Milk Gallon"
     },
     {
      "store": "Kroger Bowling Green",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze\u00ae Dairy Free Original Almond Milk"
+     "unit_price": 2.69,
+     "price": 2.69,
+     "size": "1 gal",
+     "product": "Kroger\u00ae Vitamin D Whole Milk Gallon"
     },
     {
      "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze\u00ae Dairy Free Original Almond Milk"
+     "unit_price": 2.69,
+     "price": 2.69,
+     "size": "1 gal",
+     "product": "Kroger\u00ae Vitamin D Whole Milk Gallon"
+    },
+    {
+     "store": "Kroger Waterville",
+     "unit_price": 3.09,
+     "price": 3.09,
+     "size": "1 gal",
+     "product": "Kroger\u00ae Vitamin D Whole Milk Gallon"
     }
    ],
-   "spread": 0.0,
+   "spread": 0.3493,
    "same_product": true,
    "trap": {
     "small": {
-     "size": "32 fl oz",
-     "price": 2.29,
-     "unit_price": 9.16
+     "size": "1/2 gal",
+     "price": 1.69,
+     "unit_price": 3.38
     },
     "big": {
-     "size": "1/2 gal",
-     "price": 3.49,
-     "unit_price": 6.98
+     "size": "1 gal",
+     "price": 2.29,
+     "unit_price": 2.29
     },
-    "store": "Kroger Maumee"
+    "store": "Kroger Marketplace Perrysburg"
    }
   },
   {
    "item": "eggs",
-   "kind": "large pasture-raised eggs (name brand)",
+   "kind": "extra large eggs (store brand)",
    "unit": "doz",
    "stores": [
     {
      "store": "Kroger Maumee",
-     "unit_price": 6.49,
-     "price": 6.49,
+     "unit_price": 1.99,
+     "price": 1.99,
      "size": "12 ct",
-     "product": "Pete and Gerry's\u00ae Pasture Raised Large Eggs"
-    },
-    {
-     "store": "Kroger Waterville",
-     "unit_price": 6.49,
-     "price": 6.49,
-     "size": "12 ct",
-     "product": "Pete and Gerry's\u00ae Pasture Raised Large Eggs"
+     "product": "Kroger\u00ae Grade A Extra Large White Eggs"
     },
     {
      "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 6.49,
-     "price": 6.49,
+     "unit_price": 1.99,
+     "price": 1.99,
      "size": "12 ct",
-     "product": "Pete and Gerry's\u00ae Pasture Raised Large Eggs"
+     "product": "Kroger\u00ae Grade A Extra Large White Eggs"
     },
     {
      "store": "Kroger Bowling Green",
-     "unit_price": 6.49,
-     "price": 6.49,
+     "unit_price": 1.99,
+     "price": 1.99,
      "size": "12 ct",
-     "product": "Pete and Gerry's\u00ae Pasture Raised Large Eggs"
+     "product": "Kroger\u00ae Grade A Extra Large White Eggs"
     },
     {
      "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 6.49,
-     "price": 6.49,
+     "unit_price": 1.99,
+     "price": 1.99,
      "size": "12 ct",
-     "product": "Pete and Gerry's\u00ae Pasture Raised Large Eggs"
+     "product": "Kroger\u00ae Grade A Extra Large White Eggs"
+    },
+    {
+     "store": "Kroger Waterville",
+     "unit_price": 2.49,
+     "price": 2.49,
+     "size": "12 ct",
+     "product": "Kroger\u00ae Grade A Extra Large White Eggs"
     }
    ],
-   "spread": 0.0,
+   "spread": 0.2513,
    "same_product": true,
    "trap": null
   },
   {
    "item": "bread",
-   "kind": "white bread (name brand)",
+   "kind": "white bread (store brand)",
    "unit": "lb",
    "stores": [
     {
@@ -156,157 +156,145 @@ window.FINDINGS = {
   },
   {
    "item": "butter",
-   "kind": "butter (name brand)",
-   "unit": "each",
+   "kind": "salted butter (store brand)",
+   "unit": "lb",
    "stores": [
     {
      "store": "Kroger Maumee",
-     "unit_price": 0.25,
-     "price": 3.0,
-     "size": "12 count",
-     "product": "Bakery Fresh Peanut Butter Cookies"
+     "unit_price": 3.145,
+     "price": 6.29,
+     "size": "4 sticks / 16 oz / 2 pk",
+     "product": "Kroger\u00ae Salted Butter Sticks BIG DEAL!"
     },
     {
      "store": "Kroger Waterville",
-     "unit_price": 0.25,
-     "price": 3.0,
-     "size": "12 count",
-     "product": "Bakery Fresh Peanut Butter Cookies"
+     "unit_price": 3.145,
+     "price": 6.29,
+     "size": "4 sticks / 16 oz / 2 pk",
+     "product": "Kroger\u00ae Salted Butter Sticks BIG DEAL!"
     },
     {
      "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 0.25,
-     "price": 3.0,
-     "size": "12 count",
-     "product": "Bakery Fresh Peanut Butter Cookies"
+     "unit_price": 3.145,
+     "price": 6.29,
+     "size": "4 sticks / 16 oz / 2 pk",
+     "product": "Kroger\u00ae Salted Butter Sticks BIG DEAL!"
     },
     {
      "store": "Kroger Bowling Green",
-     "unit_price": 0.25,
-     "price": 3.0,
-     "size": "12 count",
-     "product": "Bakery Fresh Peanut Butter Cookies"
+     "unit_price": 3.145,
+     "price": 6.29,
+     "size": "4 sticks / 16 oz / 2 pk",
+     "product": "Kroger\u00ae Salted Butter Sticks BIG DEAL!"
     },
     {
      "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 0.25,
-     "price": 3.0,
-     "size": "12 count",
-     "product": "Bakery Fresh Peanut Butter Cookies"
+     "unit_price": 3.145,
+     "price": 6.29,
+     "size": "4 sticks / 16 oz / 2 pk",
+     "product": "Kroger\u00ae Salted Butter Sticks BIG DEAL!"
     }
    ],
    "spread": 0.0,
    "same_product": true,
    "trap": {
     "small": {
-     "size": "10 oz",
-     "price": 1.99,
-     "unit_price": 3.184
+     "size": "8 oz",
+     "price": 3.39,
+     "unit_price": 6.78
     },
     "big": {
-     "size": "12 count",
-     "price": 3.0,
-     "unit_price": 0.25
+     "size": "4 sticks / 16 oz / 2 pk",
+     "price": 6.29,
+     "unit_price": 3.145
     },
     "store": "Kroger Maumee"
    }
   },
   {
    "item": "chicken breast",
-   "kind": "chicken breast (name brand)",
-   "unit": "each",
-   "stores": [
-    {
-     "store": "Kroger Maumee",
-     "unit_price": 1.995,
-     "price": 3.99,
-     "size": "2 count",
-     "product": "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu"
-    },
-    {
-     "store": "Kroger Waterville",
-     "unit_price": 1.995,
-     "price": 3.99,
-     "size": "2 count",
-     "product": "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu"
-    },
-    {
-     "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 1.995,
-     "price": 3.99,
-     "size": "2 count",
-     "product": "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu"
-    },
-    {
-     "store": "Kroger Bowling Green",
-     "unit_price": 1.995,
-     "price": 3.99,
-     "size": "2 count",
-     "product": "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu"
-    },
-    {
-     "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 1.995,
-     "price": 3.99,
-     "size": "2 count",
-     "product": "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu"
-    }
-   ],
-   "spread": 0.0,
-   "same_product": true,
-   "trap": {
-    "small": {
-     "size": "2.47 oz",
-     "price": 1.69,
-     "unit_price": 10.9474
-    },
-    "big": {
-     "size": "2 count",
-     "price": 3.99,
-     "unit_price": 1.995
-    },
-    "store": "Kroger Maumee"
-   }
-  },
-  {
-   "item": "bananas",
-   "kind": "bananas (store brand)",
+   "kind": "tenderloins chicken breast (store brand)",
    "unit": "lb",
    "stores": [
     {
      "store": "Kroger Maumee",
-     "unit_price": 2.79,
-     "price": 2.79,
-     "size": "16 oz",
-     "product": "Kroger\u00ae Frozen Sliced Bananas"
+     "unit_price": 6.99,
+     "price": 6.99,
+     "size": "1 lb",
+     "product": "Simple Truth\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders"
     },
     {
      "store": "Kroger Waterville",
-     "unit_price": 2.79,
-     "price": 2.79,
-     "size": "16 oz",
-     "product": "Kroger\u00ae Frozen Sliced Bananas"
+     "unit_price": 6.99,
+     "price": 6.99,
+     "size": "1 lb",
+     "product": "Simple Truth\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders"
     },
     {
      "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 2.79,
-     "price": 2.79,
-     "size": "16 oz",
-     "product": "Kroger\u00ae Frozen Sliced Bananas"
+     "unit_price": 6.99,
+     "price": 6.99,
+     "size": "1 lb",
+     "product": "Simple Truth\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders"
     },
     {
      "store": "Kroger Bowling Green",
-     "unit_price": 2.79,
-     "price": 2.79,
-     "size": "16 oz",
-     "product": "Kroger\u00ae Frozen Sliced Bananas"
+     "unit_price": 6.99,
+     "price": 6.99,
+     "size": "1 lb",
+     "product": "Simple Truth\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders"
     },
     {
      "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 2.79,
-     "price": 2.79,
-     "size": "16 oz",
-     "product": "Kroger\u00ae Frozen Sliced Bananas"
+     "unit_price": 6.99,
+     "price": 6.99,
+     "size": "1 lb",
+     "product": "Simple Truth\u00ae Natural Boneless & Skinless Fresh Chicken Breast Tenders"
+    }
+   ],
+   "spread": 0.0,
+   "same_product": true,
+   "trap": null
+  },
+  {
+   "item": "bananas",
+   "kind": "bananas (name brand)",
+   "unit": "gal",
+   "stores": [
+    {
+     "store": "Kroger Maumee",
+     "unit_price": 6.98,
+     "price": 3.49,
+     "size": "1/2 gal",
+     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
+    },
+    {
+     "store": "Kroger Waterville",
+     "unit_price": 6.98,
+     "price": 3.49,
+     "size": "1/2 gal",
+     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
+    },
+    {
+     "store": "Kroger Marketplace Perrysburg",
+     "unit_price": 6.98,
+     "price": 3.49,
+     "size": "1/2 gal",
+     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
+    },
+    {
+     "store": "Kroger Bowling Green",
+     "unit_price": 6.98,
+     "price": 3.49,
+     "size": "1/2 gal",
+     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
+    },
+    {
+     "store": "Kroger Marketplace Orchard Centre",
+     "unit_price": 6.98,
+     "price": 3.49,
+     "size": "1/2 gal",
+     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
     }
    ],
    "spread": 0.0,
