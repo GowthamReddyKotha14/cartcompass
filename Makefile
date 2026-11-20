@@ -9,3 +9,10 @@ test:
 # Record today's prices for the standard basket (schedule this daily)
 track:
 	$(PY) -m cartcompass track
+
+# macOS: run `track` every day (launchd). `make unschedule` removes it.
+schedule:
+	sh scripts/schedule_mac.sh
+
+unschedule:
+	sh scripts/schedule_mac.sh remove
