@@ -48,3 +48,15 @@ def test_cli_reports_bad_keys(capsys):
     bad = KrogerClient("id", "secret", transport=lambda *a: (401, {"error": "invalid_client"}))
     assert main(["search", "milk"], client=bad) == 2
     assert "invalid_client" in capsys.readouterr().err
+
+
+def test_plain_kinds_come_before_niche_ones():
+    from cartcompass.compare import rank
+    from cartcompass.offers import from_product
+    from fake_kroger import product
+    offers = []
+    for store in ("A", "B", "C"):  # boxed milk sold everywhere
+        offers += from_product(store, product("b", "Horizon Organic Shelf Stable 1% Lowfat Milk", "12 ct / 8 fl oz", 14.99, brand="Horizon Organic"))
+    offers += from_product("A", product("g", "Kroger® Vitamin D Whole Milk Gallon", "1 gal", 2.29))
+    choices, _, _ = rank(offers, "milk")
+    assert choices[0].variant.label() == "whole milk (store brand)"

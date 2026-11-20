@@ -23,10 +23,11 @@ TAXONOMY: dict[str, dict] = {
             "type": [("almond", r"\balmond"), ("oat", r"\boat\b"), ("soy", r"\bsoy"),
                      ("lactose-free", r"lactose[- ]free|lactaid|fairlife"),
                      ("chocolate", r"\bchocolate\b"), ("strawberry", r"\bstrawberry\b")],
+            "format": [("shelf-stable", r"shelf[- ]stable|\baseptic\b|\buht\b")],
             "fat": [("whole", r"\bwhole\b|vitamin d milk"), ("2%", r"\b2\s?%"), ("1%", r"\b1\s?%"),
                     ("skim", r"\bskim\b|fat[- ]free|nonfat")],
         },
-        "default": {"type": "regular"},
+        "default": {"type": "regular", "format": "fresh"},
     },
     "eggs": {
         "reject": [r"\begg ?nog\b", r"\begg noodles?\b", r"\begg rolls?\b", r"\begg whites?\b",
@@ -48,8 +49,18 @@ TAXONOMY: dict[str, dict] = {
     },
 }
 
+# Attribute values that describe the ordinary version of an item; not shown in labels.
+PLAIN = {"regular", "fresh", "caged", "white", "conventional", "single"}
+
+# Reading order for labels: "1% shelf-stable multipack organic milk".
+LABEL_ORDER = ["size", "fat", "grain", "type", "housing", "color", "format", "pack", "organic"]
+
 ALIASES = {"egg": "eggs", "dozen eggs": "eggs", "2% milk": "milk", "whole milk": "milk",
            "loaf of bread": "bread"}
+
+
+# "12 ct / 8 fl oz", "6 pk / 12 oz", "2 x 16 oz": several packages sold together
+_MULTIPACK = re.compile(r"\d+\s*(ct|pk|pack|count)\s*/|\d+\s*x\s*\d")
 
 
 @dataclass(frozen=True)
@@ -57,8 +68,14 @@ class Variant:
     family: str
     attrs: tuple[tuple[str, str], ...]
 
+    @property
+    def plainness(self) -> int:
+        """How many ways this differs from the ordinary item (0 = plain 2% milk jug)."""
+        return sum(v not in PLAIN for k, v in self.attrs if k not in ("tier", "fat", "size", "grain"))
+
     def label(self) -> str:
-        parts = [v for _, v in self.attrs if v not in ("regular", "caged", "white", "store brand", "name brand", "conventional")]
+        attrs = dict(self.attrs)
+        parts = [attrs[k] for k in LABEL_ORDER if k in attrs and attrs[k] not in PLAIN]
         tier = dict(self.attrs).get("tier")
         name = " ".join(parts + [self.family]) if parts else self.family
         return f"{name} ({tier})" if tier else name
@@ -100,6 +117,7 @@ def variant(o, query: str) -> Variant:
             if re.search(pattern, text):
                 found[attr] = value
                 break
+    found["pack"] = "multipack" if _MULTIPACK.search((o.size or "").lower()) else "single"
     found["organic"] = "organic" if "organic" in text else "conventional"
     found["tier"] = "store brand" if is_store_brand(o.brand) else "name brand"
     return Variant(fam, tuple(sorted(found.items())))

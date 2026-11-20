@@ -46,9 +46,21 @@ def test_eggs():
 
 def test_unknown_items_still_split_organic_and_tier():
     v = dict(variant(offer("Simple Truth Organic Bananas", "Simple Truth Organic"), "bananas").attrs)
-    assert v == {"organic": "organic", "tier": "store brand"}
+    assert v == {"organic": "organic", "pack": "single", "tier": "store brand"}
 
 
 def test_store_brands():
     assert is_store_brand("Kroger®") and is_store_brand("Private Selection")
     assert not is_store_brand("Horizon Organic")
+
+
+def test_shelf_stable_boxes_are_their_own_kind():
+    jug = variant(offer("Horizon Organic 1% Lowfat Milk", "Horizon Organic", size="1/2 gal"), "milk")
+    box = variant(offer("Horizon Organic Shelf Stable 1% Lowfat Milk", "Horizon Organic", size="12 ct / 8 fl oz"), "milk")
+    assert jug != box
+    assert box.label() == "1% shelf-stable multipack organic milk (name brand)"
+    assert jug.plainness < box.plainness
+
+
+def test_plain_milk_is_plainest():
+    assert variant(offer("Kroger® 2% Reduced Fat Milk Gallon"), "milk").plainness == 0

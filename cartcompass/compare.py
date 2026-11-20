@@ -47,8 +47,9 @@ def rank(offers: list[Offer], query: str) -> tuple[list[Choice], int, int]:
         groups[variant(o, query)].append(o)
     key = lambda o: (not o.available, o.unit_price is None, o.unit_price or 0, o.price)
     choices = [Choice(v, sorted(os, key=key)) for v, os in groups.items()]
-    # Most widely sold kinds first, so "2% milk" comes before a niche variant.
-    choices.sort(key=lambda c: (-len({o.store_id for o in c.offers}), -len(c.offers),
+    # Ordinary kinds first (a plain gallon before shelf-stable boxes), then the most
+    # widely sold, then the cheapest.
+    choices.sort(key=lambda c: (c.variant.plainness, -len({o.store_id for o in c.offers}),
                                 c.best.unit_price if c.best else float("inf")))
     return choices, skipped, unpriced
 
