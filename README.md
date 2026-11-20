@@ -53,6 +53,28 @@ Compared with:
 (Example from the test data. Home is your ZIP's center from the Census
 Bureau's ZIP list, or `--home lat,lon`.)
 
+## Walmart, ALDI and Meijer: from receipts
+
+These chains publish no price API, so their prices come from receipts. An AI
+vision model (Claude, via the Anthropic API) reads the photo and decodes each
+line:
+
+```
+$ cartcompass receipt IMG_2041.jpg
+IMG_2041.jpg: Walmart, 131 W Gypsy Lane Rd 43402 on 2026-11-18
+  GV 2% MLK GAL 007874235187 F → Great Value 2% Reduced Fat Milk   1 gal    $2.98   $2.98/gal
+  GV LG WHT EGG 18CT F 3.47 N  → Great Value Large White Eggs      18 ct    $3.47
+  ✓ items add up to the subtotal ($10.45)
+saved 4 prices from Walmart
+```
+
+(Example output from the test data.) The model's answer is checked, not
+trusted: line prices must add up to the printed subtotal, guessed lines are
+marked `?`, and sizes are never invented. Saved receipt prices from the last 30
+days join `search` and `plan` for stores inside the radius. Needs
+`ANTHROPIC_API_KEY` in `~/.cartcompass.env`; iPhone HEIC photos are converted
+automatically on macOS.
+
 ## Is that sale real?
 
 Every search saves that day's prices to `data/prices.sqlite` on your machine.
@@ -65,10 +87,13 @@ cartcompass track      # record today's prices for an everyday basket
 make schedule          # macOS: do that every morning automatically
 ```
 
-**Status:** live Kroger search, price history and trip planning work. Next:
-other stores (Walmart, Aldi, Meijer) from receipt photos.
+**Status:** live Kroger search, receipt reading, price history and trip planning
+work. Next: a public showcase page.
 
 ## Data
 
 - Live store prices from the official [Kroger Public API](https://developer.kroger.com/)
   (non-commercial use). Keys live in `~/.cartcompass.env`, never in this repo.
+- Other chains from your own receipt photos, read with the
+  [Anthropic API](https://docs.claude.com/).
+- ZIP code locations from the U.S. Census Bureau's ZCTA gazetteer (public domain).
