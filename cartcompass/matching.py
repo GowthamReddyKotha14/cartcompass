@@ -99,7 +99,10 @@ TAXONOMY: dict[str, dict] = {
         "reject": [r"\bchips?\b", r"\bbread\b", r"\bpudding\b", r"\bpeppers?\b", r"\bcream\b",
                    r"\bdried\b", r"\bbaby\b", r"\bflavou?red\b", r"\bsmoothie\b", r"\bsplit\b", r"\bmuffins?\b",
                    r"\bcereal\b", r"\bpopsicles?\b", r"\bbars?\b", r"\btaffy\b", r"\bcandy\b", r"\bnut\b",
-                   r"\bfrozen\b", r"\bsliced\b", r"\bpuree\b", r"\bpouch(es)?\b", r"\bpancake"],
+                   r"\bfrozen\b", r"\bsliced\b", r"\bpuree\b", r"\bpouch(es)?\b", r"\bpancake",
+                   # mixes and snacks that merely contain banana
+                   r"\bmix\b", r"\btrail\b", r"\bsnacks?\b", r"\bgranola\b", r"\byogh?urt\b", r"\boatmeal\b",
+                   r"\bjuice\b", r"\bberr(y|ies)\b", r"\band\s+banana|banana\s+and\b", r"\bcrisps?\b"],
         "attrs": {"kind": [("plantains", r"plantain"), ("baby", r"\bbaby\b|\bmanzano\b|\bred bananas?\b")]},
         "default": {},
     },

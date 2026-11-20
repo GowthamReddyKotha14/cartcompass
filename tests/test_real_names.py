@@ -86,6 +86,7 @@ def test_white_bread_and_other_bread_get_different_labels():
     ("chicken breast", "Kroger® Frozen Boneless Skinless Chicken Breasts", "3 lb", "Kroger", "frozen chicken breast (store brand)"),
     ("bananas", "Kroger® Frozen Sliced Bananas", "16 oz", "Kroger", None),
     ("bananas", "Fresh Banana - Each", "1 each", "", "bananas (name brand)"),
+    ("bananas", "Simple Truth® Berries and Banana Trail Mix", "16 oz", "Simple Truth", None),
     ("bread", "Smart Way™ Enriched White Bread", "16 oz", "Smart Way", "white bread (store brand)"),
 ])
 def test_real_everyday_items(query, desc, size, brand, expected):
