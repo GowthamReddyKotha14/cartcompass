@@ -65,3 +65,12 @@ def test_file_database_is_created(tmp_path):
     db = connect(tmp_path / "sub" / "prices.sqlite")
     record(db, [offer(2.69)], TODAY)
     assert (tmp_path / "sub" / "prices.sqlite").exists()
+
+
+def test_store_names_are_remembered_for_reports():
+    from cartcompass.history import record_stores
+    from cartcompass.kroger import Store
+    db = connect(":memory:")
+    record_stores(db, [Store("01600878", "KROGER", "Kroger - Bowling Green", "", "Bowling Green", "", 41.39, -83.65),
+                       Store("receipt:walmart:43402:x", "WALMART", "Walmart - x", "", "", "", 41.3, -83.6)])
+    assert db.execute("SELECT store_id, label FROM stores").fetchall() == [("01600878", "Kroger Bowling Green")]

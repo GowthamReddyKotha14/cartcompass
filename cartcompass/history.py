@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS prices (
     PRIMARY KEY (day, store_id, product_id, size)
 );
 CREATE INDEX IF NOT EXISTS prices_item ON prices (store_id, product_id, size, day);
+-- Names and places of live stores seen in searches, for reports.
+CREATE TABLE IF NOT EXISTS stores (
+    store_id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    city TEXT,
+    lat REAL,
+    lon REAL
+);
 -- Stores known only from receipts (Walmart, ALDI, Meijer...). Location is the
 -- center of the store's ZIP code, which is close enough for trip planning.
 CREATE TABLE IF NOT EXISTS other_stores (
@@ -67,6 +75,14 @@ def record(db: sqlite3.Connection, offers: list[Offer], day: date | None = None)
     db.executemany("INSERT OR REPLACE INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     db.commit()
     return len(rows)
+
+
+def record_stores(db: sqlite3.Connection, stores) -> None:
+    """Remember the name and place of each live store (receipt stores live in other_stores)."""
+    db.executemany("INSERT OR REPLACE INTO stores VALUES (?,?,?,?,?)",
+                   [(s.location_id, s.label, s.city, s.lat, s.lon) for s in stores
+                    if not s.location_id.startswith("receipt:")])
+    db.commit()
 
 
 @dataclass

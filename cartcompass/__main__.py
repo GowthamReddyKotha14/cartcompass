@@ -119,6 +119,7 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None, read
     if not a.no_save:
         db = history.connect(a.db)
         history.record(db, live_only([o for ch in c.choices for o in ch.offers]))
+        history.record_stores(db, c.stores.values())
     print(json.dumps(to_json(c), indent=2) if a.json else render(c, a.show, db))
     return 0
 
@@ -201,7 +202,9 @@ def plan_cmd(client: KrogerClient, a) -> int:
     priced, stores, plans, offers = plan_trip(client, a.items, a.zip, home, a.radius, a.max_stores,
                                               a.per_mile, a.stores, a.depth, receipt_stores(a, home),
                                               a.per_stop)
-    history.record(history.connect(a.db), live_only(offers))
+    db = history.connect(a.db)
+    history.record(db, live_only(offers))
+    history.record_stores(db, stores.values())
     name = lambda sid: stores[sid].label if sid in stores else sid
     print(render_plan(priced, plans, name, a.per_mile, a.per_stop))
     return 0
@@ -251,6 +254,7 @@ def track(client: KrogerClient, a) -> int:
     for item in a.items:
         c = compare(client, item, a.zip, a.radius, a.stores, a.depth)
         n = history.record(db, live_only([o for ch in c.choices for o in ch.offers]))
+        history.record_stores(db, c.stores.values())
         total += n
         print(f"{item:<16} {n:>4} prices from {len(c.stores)} stores")
     days = db.execute("SELECT count(DISTINCT day) FROM prices").fetchone()[0]
