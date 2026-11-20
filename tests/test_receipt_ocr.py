@@ -114,3 +114,41 @@ def test_clean_ocr_leaves_real_numbers_alone():
     from cartcompass.receipt_ocr import clean_ocr
     assert clean_ocr("TAX 1 7.250 % 0.00") == "TAX 1 7.250 % 0.00"
     assert clean_ocr("GV 2% MLK GAL 2,98 N") == "GV 2% MLK GAL 2.98 N"
+
+
+def test_auto_engine_is_free_without_a_key(monkeypatch, tmp_path):
+    from cartcompass import receipts
+    from cartcompass.__main__ import pick_reader
+    from cartcompass.receipt_ocr import read_receipt_free
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(receipts, "ENV_FILE", tmp_path / "none.env")
+    monkeypatch.setattr(receipts.api_key, "__defaults__", (tmp_path / "none.env",))
+    assert pick_reader("auto") is read_receipt_free
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    assert pick_reader("auto") is receipts.read_receipt
+    assert pick_reader("free") is read_receipt_free
+
+
+@pytest.mark.skipif(__import__("shutil").which("tesseract") is None, reason="needs tesseract")
+def test_free_receipt_end_to_end_on_an_image(tmp_path, capsys):
+    """Render a receipt, OCR it for real, and save it, all without an account."""
+    from PIL import Image, ImageDraw, ImageFont
+    from cartcompass.__main__ import main
+    lines = ["Walmart", "BOWLING GREEN OH 43402", "GV 2% MLK GAL 007874235187 F 2.98 N",
+             "GV LG WHT EGG 18CT 060538818718 F 3.47 N", "SUBTOTAL 6.45", "11/18/26"]
+    try:
+        font = ImageFont.truetype("DejaVuSansMono.ttf", 26)
+    except OSError:
+        pytest.skip("no monospace font")
+    img = Image.new("L", (760, 40 * (len(lines) + 2)), 250)
+    d = ImageDraw.Draw(img)
+    for i, line in enumerate(lines):
+        d.text((24, 40 * (i + 1)), line, font=font, fill=15)
+    path = tmp_path / "receipt.png"
+    img.save(path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "zcta_centroids.tsv").write_text("GEOID\tINTPTLAT\tINTPTLONG\n43402\t41.389\t-83.656\n")
+    assert main(["receipt", str(path), "--engine", "free"]) == 0
+    out = capsys.readouterr().out
+    assert "Great Value 2% milk" in out and "✓ items add up to the subtotal ($6.45)" in out
+    assert "saved 2 prices from Walmart" in out

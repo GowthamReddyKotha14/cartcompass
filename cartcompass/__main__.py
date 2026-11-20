@@ -88,7 +88,10 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None, read
     r = sub.add_parser("receipt", help="read a receipt photo (Walmart, ALDI, Meijer...) with AI and save its prices")
     r.add_argument("images", nargs="+", type=Path)
     r.add_argument("--zip", help="store ZIP if the receipt doesn't print one")
-    r.add_argument("--model", default=receipts.MODEL)
+    r.add_argument("--engine", choices=["auto", "free", "ai"], default="auto",
+                   help="free: OCR on this Mac, no account; ai: Claude vision (needs ANTHROPIC_API_KEY "
+                        "and API credits). auto: ai if a key is set, else free")
+    r.add_argument("--model", default=receipts.MODEL, help="AI model for --engine ai")
     r.add_argument("--no-save", action="store_true")
     r.add_argument("--db", default=str(history.DEFAULT_DB))
     t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
@@ -135,8 +138,19 @@ def receipt_stores(a, home=None):
     return (stores, offers) if stores else None
 
 
+def pick_reader(engine: str):
+    from .receipt_ocr import read_receipt_free
+    if engine == "auto":
+        try:
+            receipts.api_key()
+            engine = "ai"
+        except receipts.ReceiptError:
+            engine = "free"
+    return receipts.read_receipt if engine == "ai" else read_receipt_free
+
+
 def receipt_cmd(a, reader=None) -> int:
-    reader = reader or receipts.read_receipt
+    reader = reader or pick_reader(a.engine)
     db = None if a.no_save else history.connect(a.db)
     status = 0
     for img in a.images:
@@ -161,8 +175,9 @@ def receipt_cmd(a, reader=None) -> int:
 
 def render_receipt(name: str, r) -> str:
     from .units import unit_price
-    head = f"{name}: {r.store}" + (f", {r.address}" if r.address else "") + (f" {r.zip}" if r.zip else "") \
-        + (f" on {r.date}" if r.date else "")
+    head = f"{name}: {r.store or 'unknown store'}" + (f", {r.address}" if r.address else "") \
+        + (f" {r.zip}" if r.zip else "") + (f" on {r.date}" if r.date else "") \
+        + (f"  [read with {r.model}]" if r.model else "")
     lines = [head]
     for i in r.items:
         up = (i.each, "lb") if i.sold_by_weight else unit_price(i.each, i.size)
