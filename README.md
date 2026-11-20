@@ -30,8 +30,20 @@ KROGER_CLIENT_SECRET=...
 3. **In stock.** An out-of-stock shelf never wins.
 4. **Sale prices count**, and are labeled as sales.
 
-**Status:** the live Kroger search works. Next: other stores via receipt photos,
-whole-shopping-list trips, and daily price history.
+## Is that sale real?
+
+Every search saves that day's prices to `data/prices.sqlite` on your machine.
+After 5 days of history, the best offer is judged against what that store
+usually charges (median of the last 60 days): 10% or more below is a **real
+deal**; a sale tag at about the usual price is flagged **not really a sale**.
+
+```bash
+cartcompass track      # record today's prices for an everyday basket
+make schedule          # macOS: do that every morning automatically
+```
+
+**Status:** the live Kroger search and price history work. Next: other stores via receipt photos and
+whole-shopping-list trips.
 
 ## Data
 
