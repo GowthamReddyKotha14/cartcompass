@@ -16,3 +16,7 @@ schedule:
 
 unschedule:
 	sh scripts/schedule_mac.sh remove
+
+# Showcase site data (findings from your price history + the package for the browser demo)
+site:
+	$(PY) -m cartcompass site

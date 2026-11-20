@@ -94,6 +94,9 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None, read
     r.add_argument("--model", default=receipts.MODEL, help="AI model for --engine ai")
     r.add_argument("--no-save", action="store_true")
     r.add_argument("--db", default=str(history.DEFAULT_DB))
+    st = sub.add_parser("site", help="write the showcase site's findings from the price history")
+    st.add_argument("--db", default=str(history.DEFAULT_DB))
+    st.add_argument("--out", default="docs")
     t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
     t.add_argument("items", nargs="*", default=["milk", "eggs", "bread", "bananas", "butter", "chicken breast"])
     for p in (s, t):
@@ -105,6 +108,12 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None, read
     a = ap.parse_args(argv)
     if a.cmd == "receipt":
         return receipt_cmd(a, reader)
+    if a.cmd == "site":
+        from .site import build
+        d = build(Path(a.db), Path(a.out))
+        print(f"wrote {a.out}/findings.js: {len(d['findings'])} findings from {d['stores']} stores on {d['day']} "
+              f"({d['days_tracked']} days tracked) and {a.out}/cartcompass.zip")
+        return 0
     try:
         client = client or KrogerClient.from_env()
         if a.cmd == "track":
