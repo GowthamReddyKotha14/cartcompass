@@ -31,7 +31,9 @@ for names, dim, factor in [
     (("lb", "lbs", "pound", "pounds"), "weight", 16.0),
     (("g", "gram", "grams"), "weight", 0.035274),
     (("kg", "kilogram", "kilograms"), "weight", 35.274),
-    (("ct", "count", "each", "ea", "pc", "pcs", "piece", "pieces", "pk", "pack", "eggs", "rolls", "bags"), "count", 1.0),
+    (("ct", "count", "each", "ea", "pc", "pcs", "piece", "pieces", "pk", "pack", "packs", "eggs", "rolls", "bags",
+      "bottle", "bottles", "can", "cans", "box", "boxes", "pouch", "pouches", "jar", "jars", "carton", "cartons",
+      "bar", "bars", "slices"), "count", 1.0),
     (("dozen", "dz", "doz"), "count", 12.0),
 ]:
     for n in names:
@@ -113,3 +115,17 @@ def unit_price(price: float | None, size: str | None) -> tuple[float, str] | Non
         return None
     name, _ = DISPLAY[q.dim]
     return round(price / q.per(), 4), name
+
+
+def parse_count(text: str | None) -> float | None:
+    """The item count in a size ("18 ct / 36 oz" -> 18), or None if there is none."""
+    if not text:
+        return None
+    t = text.lower()
+    m = _MULT.match(t)
+    mult = _num(m.group(1)) if m else 1.0
+    for n, u in _PART.findall(m.group(2) if m else t):
+        dim, factor = UNITS[u.lower()]
+        if dim == "count":
+            return _num(n) * factor * mult
+    return None

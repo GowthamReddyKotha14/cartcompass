@@ -55,3 +55,18 @@ def test_unit_price_needs_price_and_size():
 def test_eggs_per_dozen():
     q = parse_size("18 ct")
     assert q.per("dozen") == pytest.approx(1.5)
+
+
+def test_bottles_and_cans_are_counts():
+    # Real Kroger size string: this once priced at $207.84/gal instead of $17.32/gal.
+    assert parse_size("12 bottles / 8 fl oz").amount == 96
+    assert unit_price(12.99, "12 bottles / 8 fl oz") == (17.32, "gal")
+    assert parse_size("12 cans / 12 fl oz").amount == 144
+
+
+def test_parse_count():
+    from cartcompass.units import parse_count
+    assert parse_count("18 ct / 36 oz") == 18
+    assert parse_count("1 dozen") == 12
+    assert parse_count("18 ct.") == 18
+    assert parse_count("1 gal") is None
