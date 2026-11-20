@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CartCompass: the real cheapest groceries near you</title>
+<meta name="description" content="Compares grocery prices across nearby stores by price per gallon, pound or dozen, from live store data and receipt photos. Try the real code in your browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6f4ef; --surface:#fffdf9; --soft:#efece4; --line:#e0dbcf; --line-2:#cdc6b6;
+  --ink:#16140f; --ink-2:#3d3a33; --ink-3:#5f5a4f;
+  --accent:#1f6f4a; --accent-soft:#e3f1e8; --bar:#2a78d6; --bar-best:#1d5aa6;
+  --warn:#9a4a00; --warn-bg:#fff1df; --bad:#b3261e; --bad-bg:#fdecea; --ok:#1d6b3a; --ok-bg:#e6f4ea; --link:#1b5fae;
+  --serif:"Fraunces",Georgia,serif; --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --bg:#121311; --surface:#1a1b19; --soft:#232421; --line:#33352f; --line-2:#45473f;
+    --ink:#f2f0ea; --ink-2:#c9c6bb; --ink-3:#a5a297;
+    --accent:#6fd09c; --accent-soft:#1a3326; --bar:#3987e5; --bar-best:#7fb2f0;
+    --warn:#f2c25b; --warn-bg:#3a2e12; --bad:#ff8a80; --bad-bg:#3a1b19; --ok:#7fd99a; --ok-bg:#16301f; --link:#8cbcf5;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:calc(72px + env(safe-area-inset-top,0px))}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink-2);font:400 1rem/1.6 var(--sans);padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:var(--link)}
+:focus-visible{outline:3px solid var(--bar);outline-offset:2px;border-radius:4px}
+h1,h2,h3{color:var(--ink);margin:0}
+h1,h2{font-family:var(--serif);font-weight:700;letter-spacing:-.015em}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.skip{position:absolute;left:-999px}.skip:focus{left:16px;top:16px;z-index:99;background:var(--surface);padding:8px 12px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.nav{position:sticky;top:0;z-index:40;padding-top:env(safe-area-inset-top,0px);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:20px;height:60px}
+.brand{font:700 1.05rem var(--sans);color:var(--ink);text-decoration:none}
+.nav nav{flex:1;display:flex;justify-content:center}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0}
+.nav ul a{color:var(--ink-2);text-decoration:none;font-size:.94rem}
+.nav ul a:hover{color:var(--ink)}
+@media (max-width:820px){.nav nav{display:none}.nav .wrap{justify-content:space-between}}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:9px 14px;font:600 .92rem var(--sans);border:1px solid var(--line-2);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer}
+.btn:hover{border-color:var(--bar)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn:disabled{opacity:.6;cursor:progress}
+
+.hero{padding:60px 0 30px}
+.eyebrow{font:500 .8rem var(--mono);color:var(--ink-3);margin:0 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.hero h1{font-size:clamp(2.1rem,4.8vw,3.5rem);line-height:1.06;max-width:18ch;margin-bottom:16px}
+.hero p.sub{max-width:62ch;font-size:1.08rem;margin:0 0 26px}
+.hero p.sub strong{color:var(--ink)}
+.trap{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:760px}
+@media (max-width:620px){.trap{grid-template-columns:1fr}}
+.pkg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative}
+.pkg .tag{font:600 .74rem var(--sans);padding:2px 8px;border-radius:999px;position:absolute;top:14px;right:14px}
+.pkg.bad .tag{background:var(--bad-bg);color:var(--bad)}
+.pkg.good .tag{background:var(--ok-bg);color:var(--ok)}
+.pkg .size{font-size:.9rem;color:var(--ink-3)}
+.pkg .shelf{font:700 1.9rem var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+.pkg .per{font:600 1rem var(--sans);font-variant-numeric:tabular-nums}
+.pkg.bad .per{color:var(--bad)} .pkg.good .per{color:var(--ok)}
+.src{font-size:.82rem;color:var(--ink-3);margin:10px 0 0}
+.kpis{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:26px;font-size:.92rem;color:var(--ink-3)}
+.kpis b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+section{padding:44px 0}
+h2{font-size:clamp(1.55rem,2.8vw,2.1rem);margin-bottom:8px}
+.lede{max-width:70ch;margin:0 0 22px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:980px){.grid3{grid-template-columns:1fr}}
+.card{padding:18px}
+.card h3{font-size:1.05rem}
+.card .spread{font:700 1.6rem var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;margin:6px 0 0}
+.card .what{font-size:.86rem;color:var(--ink-3);margin:0 0 10px}
+.bars{width:100%;height:auto;display:block}
+.bars text{font:12px var(--sans);fill:var(--ink-2)}
+.bars .val{font-weight:600;fill:var(--ink)}
+.note{font-size:.86rem;color:var(--ink-3)}
+
+.try{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.try{grid-template-columns:1fr}}
+.try .panel{padding:18px}
+.try h3{font-size:1.1rem;margin-bottom:4px}
+.row{display:grid;grid-template-columns:110px 1fr;gap:8px;margin:8px 0}
+label{font-size:.86rem;color:var(--ink-3);display:block;margin-bottom:3px}
+input,textarea{width:100%;font:500 .95rem var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px}
+textarea{min-height:230px;resize:vertical;font-size:.82rem;line-height:1.5}
+.pkgs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pkgs fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0}
+.pkgs legend{font:600 .86rem var(--sans);color:var(--ink);padding:0 4px}
+.result{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--soft);font-size:.95rem;min-height:48px}
+.result strong{color:var(--ink)}
+.status{font-size:.82rem;color:var(--ink-3);margin:8px 0 0}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--ink-3);font-size:.8rem}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+td.raw{font-family:var(--mono);font-size:.78rem;color:var(--ink-3)}
+.chk{margin:10px 0 0;padding:8px 10px;border-radius:8px;font-size:.88rem}
+.chk.ok{background:var(--ok-bg);color:var(--ok)} .chk.bad{background:var(--warn-bg);color:var(--warn)}
+.scroll{overflow-x:auto}
+
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.steps{grid-template-columns:1fr}}
+.steps .panel{padding:16px}
+.steps .k{font:500 .76rem var(--mono);color:var(--ink-3)}
+.steps h3{font-size:1rem;margin:4px 0 6px}
+.steps p{margin:0;font-size:.9rem}
+pre.cli{background:#16140f;color:#f2f0ea;border-radius:12px;padding:16px 18px;font:400 .8rem/1.55 var(--mono);overflow-x:auto;margin:0}
+pre.cli .c{color:#9fd3a8} pre.cli .d{color:#a5a297}
+ul.limits{margin:0;padding-left:20px}
+ul.limits li{margin:6px 0}
+footer{border-top:1px solid var(--line);padding:26px 0 44px;font-size:.86rem;color:var(--ink-3)}
+.empty{padding:40px;text-align:center}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#top">🧭 CartCompass</a>
+  <nav aria-label="Sections"><ul>
+    <li><a href="#found">What it found</a></li><li><a href="#try">Try it</a></li>
+    <li><a href="#how">How it works</a></li><li><a href="#limits">Limits</a></li>
+  </ul></nav>
+  <a class="btn" href="https://github.com/GowthamReddyKotha14/cartcompass">Code on GitHub</a>
+</div></header>
+
+<main id="main">
+<div class="hero" id="top"><div class="wrap">
+  <p class="eyebrow">Grocery price comparison · live store data + receipts</p>
+  <h1 id="hero-h">The cheaper-looking milk isn't cheaper.</h1>
+  <p class="sub">CartCompass compares groceries across nearby stores by <strong>price per gallon, pound or dozen</strong>, never by sticker price. It only compares real substitutes, skips empty shelves, and tells you whether the cheaper store is worth the drive.</p>
+  <div class="trap" id="trap" aria-live="off"></div>
+  <p class="src" id="trap-src"></p>
+  <div class="kpis" id="kpis"></div>
+</div></div>
+
+<section id="found" aria-labelledby="found-h"><div class="wrap">
+  <p class="eyebrow">What it found</p>
+  <h2 id="found-h">Same product, same day, very different prices</h2>
+  <p class="lede" id="found-lede"></p>
+  <div class="grid3" id="cards"></div>
+  <p class="note" id="found-note" style="margin-top:12px"></p>
+</div></section>
+
+<section id="try" aria-labelledby="try-h"><div class="wrap">
+  <p class="eyebrow">Try it · the real code, running in your browser</p>
+  <h2 id="try-h">Run CartCompass yourself</h2>
+  <p class="lede">These two tools run the project's actual Python package in your browser (via <a href="https://pyodide.org/">Pyodide</a>). Nothing is sent anywhere. The first run downloads Python, about 10 MB.</p>
+  <div class="try">
+    <div class="panel">
+      <h3>Which package is really cheaper?</h3>
+      <p class="note" style="margin:0 0 6px">Type sizes the way stores write them: <code>1/2 gal</code>, <code>64 fl oz</code>, <code>6 pk / 12 fl oz</code>, <code>18 ct</code>, <code>2 x 16 oz</code>.</p>
+      <form id="calc" class="pkgs">
+        <fieldset><legend>Package A</legend>
+          <label for="pa">Price ($)</label><input id="pa" inputmode="decimal" value="1.69">
+          <label for="sa" style="margin-top:8px">Size</label><input id="sa" value="1/2 gal">
+        </fieldset>
+        <fieldset><legend>Package B</legend>
+          <label for="pb">Price ($)</label><input id="pb" inputmode="decimal" value="2.29">
+          <label for="sb" style="margin-top:8px">Size</label><input id="sb" value="1 gal">
+        </fieldset>
+        <div style="grid-column:1/-1"><button class="btn primary" type="submit">Compare</button></div>
+      </form>
+      <div class="result" id="calc-out" aria-live="polite">Press Compare.</div>
+    </div>
+    <div class="panel">
+      <h3>Decode a receipt</h3>
+      <p class="note" style="margin:0 0 6px">Receipt text as phone OCR reads it, typos included. The free decoder turns store shorthand into products and checks the total. (Sample text, not a real purchase.)</p>
+      <label for="rtext" class="vh">Receipt text</label>
+      <textarea id="rtext" spellcheck="false">Walmart
+BOWLING GREEN OH 43402
+GV 2% MLK GAL 007874235187 F 2.98 N
+GV LG WHT EGG 18CT 060538818718 F 3.47 N
+GV WHT BRD 200Z 007874206301 2 @ 1.422.84 N
+BANANAS 000000004011 F 1.16 N
+2.31 lb @ 0.50 /1lb
+GV BTR UNSLT 160Z 007874237003 F 3.84 N
+CHKN BRST BNLS SKNLS 3LB 02294 F 8.97 N
+SUBTOTAL 23.26
+TAX 1 7.250 % 0.00
+TOTAL 23.26
+11/19/26 20:31</textarea>
+      <div style="margin-top:10px"><button class="btn primary" id="decode" type="button">Decode</button></div>
+      <div id="rcpt-out" aria-live="polite"></div>
+    </div>
+  </div>
+  <p class="status" id="py-status"></p>
+</div></section>
+
+<section id="how" aria-labelledby="how-h"><div class="wrap">
+  <p class="eyebrow">How it works</p>
+  <h2 id="how-h">Honest comparisons, step by step</h2>
+  <div class="steps" style="margin-top:14px">
+    <div class="panel"><span class="k">1 · Live prices</span><h3>Official store API</h3><p>Kroger-family stores within your radius, through Kroger's public API: store-specific prices, sales and stock. Up to 150 products per store, because the everyday gallon was product #51 in real searches.</p></div>
+    <div class="panel"><span class="k">2 · Same thing only</span><h3>Like with like</h3><p>"milk" skips milk chocolate, condensed milk and Milk-Bone treats; 2% never competes with organic whole. Rules were tuned on 705 real listings, and 26 regression tests come from real product names.</p></div>
+    <div class="panel"><span class="k">3 · Per unit</span><h3>Price per gallon, pound, dozen</h3><p>Sizes like <code>12 bottles / 8 fl oz</code> parse to 96 fl oz. That one line was once priced at $207.84/gal instead of $17.32 until real data exposed it.</p></div>
+    <div class="panel"><span class="k">4 · History</span><h3>Is that sale real?</h3><p>Prices are recorded daily. After 5 days, a "sale" is judged against what that store usually charges, not the tag's "regular" price.</p></div>
+    <div class="panel"><span class="k">5 · Trip</span><h3>Worth the drive?</h3><p>For a whole list, every one- and two-store trip is priced with driving ($/mile) and your time per extra stop. A store 20 cents cheaper and 10 miles away loses, and it says why.</p></div>
+    <div class="panel"><span class="k">6 · Receipts</span><h3>Walmart, ALDI, Meijer</h3><p>No price API, so prices come from receipt photos: free on-device OCR plus a shorthand decoder, or optional AI vision. Either way, line prices must add up to the subtotal.</p></div>
+  </div>
+  <pre class="cli" style="margin-top:16px" aria-label="Example command line session"><span class="d">$</span> cartcompass plan milk eggs bread --zip 43402
+Best trip: Kroger Bowling Green
+  groceries $7.58 + driving $0.67 (3.3 mi round trip) = $8.25
+Compared with:
+  Kroger Waterville      $12.23  (groceries $0.20 cheaper, driving $4.18 more)
+<span class="c"># example output from the test suite</span></pre>
+</div></section>
+
+<section id="limits" aria-labelledby="lim-h"><div class="wrap">
+  <p class="eyebrow">Limits</p>
+  <h2 id="lim-h">What this does not do</h2>
+  <div class="panel card"><ul class="limits">
+    <li>Live prices cover Kroger-family stores only. Other chains appear only from receipts you add, and only for 30 days.</li>
+    <li>Matching is rule-based and tuned for everyday staples (milk, eggs, bread). Unusual products fall back to "organic or not, store or name brand".</li>
+    <li>Driving distance is straight-line distance times 1.3, not a real route.</li>
+    <li>The free receipt reader decodes common shorthand only; it marks lines it can't decode instead of guessing.</li>
+    <li>Findings on this page are from one area (Bowling Green and Toledo suburbs, Ohio) on the dates shown. Prices change.</li>
+  </ul></div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p>Built by Gowtham Reddy Kotha. Store prices from the <a href="https://developer.kroger.com/">Kroger Public API</a> (non-commercial use); ZIP locations from the U.S. Census Bureau. Not affiliated with Kroger, Walmart, ALDI or Meijer. Findings are generated by <code>cartcompass site</code> from the project's own price history. The browser demo runs the package from this repository.</p>
+</div></footer>
+
+<script src="findings.js"></script>
+<script>
+(() => {
+const F = window.FINDINGS;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = x => "$" + Number(x).toFixed(2);
+const pct = x => Math.round(x * 100) + "%";
+const day = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"});
+
+/* findings */
+if (!F) {
+  $("#found .wrap").insertAdjacentHTML("beforeend", '<div class="panel empty">No findings yet. Run <code>cartcompass site</code>.</div>');
+} else {
+  const milk = F.findings.find(f => f.trap) || null;
+  if (milk) {
+    const t = milk.trap, more = t.small.unit_price / t.big.unit_price - 1;
+    $("#hero-h").textContent = `The cheaper-looking milk costs ${pct(more)} more.`;
+    $("#trap").innerHTML = `
+      <div class="pkg bad"><span class="tag">looks cheaper</span><div class="size">${esc(t.small.size)}</div>
+        <div class="shelf">${money(t.small.price)}</div><div class="per">${money(t.small.unit_price)} per ${esc(milk.unit)}</div></div>
+      <div class="pkg good"><span class="tag">actually cheaper</span><div class="size">${esc(t.big.size)}</div>
+        <div class="shelf">${money(t.big.price)}</div><div class="per">${money(t.big.unit_price)} per ${esc(milk.unit)}</div></div>`;
+    $("#trap-src").textContent = `${milk.kind[0].toUpperCase() + milk.kind.slice(1)} at ${t.store}, ${day(F.day)}.`;
+  }
+  $("#kpis").innerHTML = [
+    [F.prices_total.toLocaleString(), "real prices collected"],
+    [F.stores, "stores compared"],
+    [F.days_tracked, F.days_tracked === 1 ? "day tracked" : "days tracked"],
+  ].map(([b, s]) => `<span><b>${b}</b> ${s}</span>`).join("");
+  $("#found-lede").textContent = `On ${day(F.day)}, the same products at ${F.stores} Kroger-family stores around Bowling Green, Ohio, compared per unit. Each chart is one product, identical at every store.`;
+  const unitName = {gal: "gallon", lb: "pound", doz: "dozen", each: "item"};
+  $("#cards").innerHTML = F.findings.map((f, i) => {
+    const p = f.stores[0];
+    const headline = f.spread >= 0.005 ? `${pct(f.spread)} apart` : "same price everywhere";
+    return `<article class="panel card" aria-labelledby="c${i}">
+      <h3 id="c${i}">${esc(p.product)}</h3>
+      <p class="what">${esc(p.size)} · ${esc(f.kind)}</p>
+      <p class="spread">${headline}</p>
+      <p class="what">price per ${unitName[f.unit] || f.unit}, by store</p>
+      <svg class="bars" id="b${i}" role="img"></svg></article>`;
+  }).join("");
+  F.findings.forEach((f, i) => bars($("#b" + i), f));
+  $("#found-note").textContent = "Only these summaries are published; the full price history stays on the author's machine.";
+}
+
+function bars(svg, f) {
+  const rows = f.stores, W = 340, rowH = 26, L = 150, R = 52, H = rows.length * rowH + 4;
+  const max = Math.max(...rows.map(r => r.unit_price));
+  const lo = rows[0].unit_price;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = rows.map((r, k) => {
+    const y = k * rowH + 2, w = Math.max(3, r.unit_price / max * (W - L - R));
+    const best = r.unit_price === lo;
+    const name = r.store.replace("Kroger Marketplace", "Marketplace").replace("Kroger ", "");
+    return `<g><title>${esc(r.store)}: ${money(r.unit_price)} per ${esc(f.unit)} (${esc(r.size)} for ${money(r.price)})</title>
+      <text x="${L - 8}" y="${y + 15}" text-anchor="end">${esc(name.length > 22 ? name.slice(0, 21) + "…" : name)}</text>
+      <path d="M${L},${y + 4} h${w - 4} a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h${-(w - 4)} z" fill="${best ? "var(--bar-best)" : "var(--bar)"}"/>
+      <text class="val" x="${L + w + 6}" y="${y + 15}">${money(r.unit_price)}${best ? " ✓" : ""}</text></g>`;
+  }).join("");
+  svg.setAttribute("aria-label", `${f.kind}, price per ${f.unit}: ` + rows.map(r => `${r.store} ${money(r.unit_price)}`).join(", ") + ". Cheapest marked with a check.");
+}
+
+/* Python in the browser */
+const PYODIDE = window.PYODIDE_URL || "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+let pyReady = null;
+function python() {
+  if (pyReady) return pyReady;
+  const st = $("#py-status");
+  st.textContent = "Loading Python in your browser (about 10 MB, first time only)…";
+  pyReady = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = PYODIDE + "pyodide.js";
+    s.onload = resolve; s.onerror = () => reject(new Error("couldn't load Python"));
+    document.head.appendChild(s);
+  }).then(async () => {
+    const py = await loadPyodide({indexURL: PYODIDE});
+    const zip = await (await fetch("cartcompass.zip")).arrayBuffer();
+    py.unpackArchive(zip, "zip");
+    py.runPython(`
+import json
+from cartcompass.units import parse_count, parse_size, unit_price
+from cartcompass.receipt_ocr import parse_text
+
+def compare_two(p1, s1, p2, s2):
+    out = []
+    for p, s in ((p1, s1), (p2, s2)):
+        q = parse_size(s)
+        try:
+            price = float(p)
+        except ValueError:
+            price = None
+        up = unit_price(price, s) if price is not None else None
+        out.append({"ok": q is not None and price is not None, "dim": q.dim if q else None,
+                    "amount": round(q.per(), 4) if q else None,
+                    "unit_price": up[0] if up else None, "unit": up[1] if up else None})
+    return json.dumps(out)
+
+def decode(text):
+    r = parse_text(text.splitlines())
+    items = []
+    for i in r.items:
+        up = (i.each, "lb") if i.sold_by_weight else unit_price(i.each, i.size)
+        n = parse_count(i.size)
+        if up and up[1] == "each" and "egg" in i.name.lower() and n:
+            up = (round(i.each / n * 12, 2), "doz")      # eggs compare by the dozen
+        items.append({"raw": i.raw, "name": i.name, "size": i.size, "qty": i.quantity, "weight": i.sold_by_weight,
+                      "each": i.each, "price": i.price, "per": up, "sure": i.confident})
+    return json.dumps({"store": r.store, "zip": r.zip, "date": r.date, "subtotal": r.subtotal,
+                       "adds_up": r.adds_up, "total": round(sum(i.price for i in r.items), 2),
+                       "items": items, "checks": r.checks})
+`);
+    st.textContent = "Python is running in your browser.";
+    return py;
+  }).catch(e => { st.textContent = "Couldn't start Python here: " + e.message; pyReady = null; throw e; });
+  return pyReady;
+}
+
+$("#calc").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const out = $("#calc-out"), btn = ev.submitter || $("#calc button");
+  btn.disabled = true; out.textContent = "Working…";
+  try {
+    const py = await python();
+    const [a, b] = JSON.parse(py.globals.get("compare_two")($("#pa").value, $("#sa").value, $("#pb").value, $("#sb").value));
+    if (!a.ok || !b.ok) {
+      out.innerHTML = `Couldn't read ${!a.ok ? "package A" : "package B"}. Check the price and a size like <code>1/2 gal</code>.`;
+    } else if (a.dim !== b.dim) {
+      out.innerHTML = `These can't be compared: A is sold by <strong>${a.dim}</strong>, B by <strong>${b.dim}</strong>. CartCompass refuses rather than guessing.`;
+    } else {
+      const [w, l, wn, ln] = a.unit_price <= b.unit_price ? [a, b, "A", "B"] : [b, a, "B", "A"];
+      const diff = l.unit_price / w.unit_price - 1;
+      out.innerHTML = `A: <strong>${money(a.unit_price)}/${a.unit}</strong> · B: <strong>${money(b.unit_price)}/${b.unit}</strong><br>` +
+        (diff < 0.005 ? "Same price per unit." : `<strong>Package ${wn} is cheaper per ${w.unit}.</strong> Package ${ln} costs ${pct(diff)} more for the same amount.`);
+    }
+  } catch (e) { out.textContent = "Python didn't start, so this demo can't run here."; }
+  btn.disabled = false;
+});
+
+$("#decode").addEventListener("click", async ev => {
+  const out = $("#rcpt-out"), btn = ev.currentTarget;
+  btn.disabled = true; out.innerHTML = '<p class="status">Working…</p>';
+  try {
+    const py = await python();
+    const r = JSON.parse(py.globals.get("decode")($("#rtext").value));
+    const rows = r.items.map(i => `<tr><td class="raw">${esc(i.raw.split(/\s\d{5,}/)[0])}</td><td>${esc(i.name)}${i.sure ? "" : ' <span title="only partly decoded">?</span>'}</td>
+      <td>${esc(i.weight ? i.qty + " lb" : (i.qty !== 1 ? i.qty + " × " : "") + i.size)}</td><td class="n">${money(i.each)}</td>
+      <td class="n">${i.per ? money(i.per[0]) + "/" + i.per[1] : ""}</td></tr>`).join("");
+    const check = r.adds_up === true ? `<p class="chk ok">✓ Items add up to the printed subtotal (${money(r.subtotal)}).</p>`
+      : r.adds_up === false ? `<p class="chk bad">! Items add up to ${money(r.total)}, but the subtotal says ${money(r.subtotal)}: a line was misread. Try editing a price above.</p>`
+      : `<p class="chk bad">No subtotal found to check against.</p>`;
+    out.innerHTML = r.items.length ? `<div class="scroll" style="margin-top:12px"><table><thead><tr><th scope="col">Printed</th><th scope="col">Decoded</th><th scope="col">Size</th><th scope="col" class="n">Each</th><th scope="col" class="n">Per unit</th></tr></thead><tbody>${rows}</tbody></table></div>${check}`
+      : '<p class="chk bad">No priced lines found.</p>';
+  } catch (e) { out.innerHTML = '<p class="status">Python didn\'t start, so this demo can\'t run here.</p>'; }
+  btn.disabled = false;
+});
+})();
+</script>
+</body>
+</html>
