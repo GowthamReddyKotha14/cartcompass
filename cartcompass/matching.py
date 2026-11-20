@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .units import parse_count, parse_size
+
 STORE_BRANDS = {"kroger", "simple truth", "simple truth organic", "private selection",
                 "heritage farm", "big k", "home sense", "comforts", "psst"}
 
@@ -24,14 +26,21 @@ TAXONOMY: dict[str, dict] = {
                      ("lactose-free", r"lactose[- ]free|lactaid|fairlife"),
                      ("chocolate", r"\bchocolate\b"), ("strawberry", r"\bstrawberry\b")],
             "format": [("shelf-stable", r"shelf[- ]stable|\baseptic\b|\buht\b")],
-            "fat": [("whole", r"\bwhole\b|vitamin d milk"), ("2%", r"\b2\s?%"), ("1%", r"\b1\s?%"),
-                    ("skim", r"\bskim\b|fat[- ]free|nonfat")],
+            # Most specific first: "Vitamin D Nonfat Milk" is skim, not whole.
+            "fat": [("skim", r"\bskim\b|fat[- ]free|non[- ]?fat"),
+                    ("2%", r"\b2\s?(%|percent)|reduced[- ]fat"),
+                    ("1%", r"\b1\s?(%|percent)|low[- ]?fat"),
+                    ("whole", r"\bwhole\b|vitamin d milk")],
         },
         "default": {"type": "regular", "format": "fresh"},
+        "single_serve_fl_oz": 16,   # a 1 pt bottle is not a substitute for a gallon jug
     },
     "eggs": {
         "reject": [r"\begg ?nog\b", r"\begg noodles?\b", r"\begg rolls?\b", r"\begg whites?\b",
-                   r"\beggs? substitute", r"\bplastic\b", r"\bdye\b", r"\bsalad\b", r"\bbites\b"],
+                   r"\beggs? substitute", r"\bplastic\b", r"\bdye\b", r"\bsalad\b", r"\bbites\b",
+                   r"hard[- ](cooked|boiled)", r"\bpeeled\b", r"\bscramble", r"\bkit\b", r"\bjust egg\b",
+                   r"plant[- ]based", r"\bdeviled\b", r"\bsandwich", r"\bpatt(y|ies)\b", r"\bomelet"],
+        "unit": "dozen",            # "12 ct / 24 oz" eggs compare by count, not weight
         "attrs": {
             "size": [("jumbo", r"\bjumbo\b"), ("extra large", r"extra[- ]large|\bxl\b"),
                      ("large", r"\blarge\b"), ("medium", r"\bmedium\b")],
@@ -42,15 +51,21 @@ TAXONOMY: dict[str, dict] = {
         "default": {"housing": "caged", "color": "white"},
     },
     "bread": {
-        "reject": [r"\bcrumbs\b", r"\bpudding\b", r"\bmix\b", r"\bsticks\b", r"\bbowl\b"],
-        "attrs": {"grain": [("whole wheat", r"whole wheat|100% wheat"), ("white", r"\bwhite\b"),
-                            ("multigrain", r"multi[- ]?grain|grain"), ("sourdough", r"sourdough")]},
-        "default": {},
+        "reject": [r"\bcrumbs\b", r"\bpudding\b", r"\bmix\b", r"\bsticks\b", r"\bbowl\b",
+                   r"\bmuffins?\b", r"\bbagels?\b", r"\bbuns?\b", r"\brolls?\b", r"\bcroutons?\b",
+                   r"\bstuffing\b", r"\bbites\b", r"cheese bread", r"\bgarlic\b", r"\bbaguette",
+                   r"\bpita\b", r"\bnaan\b", r"\btortilla"],
+        "attrs": {"grain": [("whole wheat", r"whole wheat|100% wheat"), ("sourdough", r"sourdough"),
+                            ("multigrain", r"multi[- ]?grain|whole grain|sprouted|grains"),
+                            ("white", r"\bwhite\b")],
+                  "format": [("frozen", r"\bfrozen\b"), ("keto", r"\bketo\b|low[- ]carb")]},
+        "default": {"format": "fresh"},
     },
 }
 
 # Attribute values that describe the ordinary version of an item; not shown in labels.
-PLAIN = {"regular", "fresh", "caged", "white", "conventional", "single"}
+PLAIN = {("type", "regular"), ("format", "fresh"), ("housing", "caged"), ("color", "white"),
+         ("organic", "conventional"), ("pack", "single")}
 
 # Reading order for labels: "1% shelf-stable multipack organic milk".
 LABEL_ORDER = ["size", "fat", "grain", "type", "housing", "color", "format", "pack", "organic"]
@@ -60,7 +75,7 @@ ALIASES = {"egg": "eggs", "dozen eggs": "eggs", "2% milk": "milk", "whole milk":
 
 
 # "12 ct / 8 fl oz", "6 pk / 12 oz", "2 x 16 oz": several packages sold together
-_MULTIPACK = re.compile(r"\d+\s*(ct|pk|pack|count)\s*/|\d+\s*x\s*\d")
+_MULTIPACK = re.compile(r"\d+\s*(ct|pk|packs?|count|bottles?|cans?|boxes|pouches)\s*/|\d+\s*x\s*\d")
 
 
 @dataclass(frozen=True)
@@ -71,11 +86,11 @@ class Variant:
     @property
     def plainness(self) -> int:
         """How many ways this differs from the ordinary item (0 = plain 2% milk jug)."""
-        return sum(v not in PLAIN for k, v in self.attrs if k not in ("tier", "fat", "size", "grain"))
+        return sum((k, v) not in PLAIN for k, v in self.attrs if k not in ("tier", "fat", "size", "grain"))
 
     def label(self) -> str:
         attrs = dict(self.attrs)
-        parts = [attrs[k] for k in LABEL_ORDER if k in attrs and attrs[k] not in PLAIN]
+        parts = [attrs[k] for k in LABEL_ORDER if k in attrs and (k, attrs[k]) not in PLAIN]
         tier = dict(self.attrs).get("tier")
         name = " ".join(parts + [self.family]) if parts else self.family
         return f"{name} ({tier})" if tier else name
@@ -117,7 +132,27 @@ def variant(o, query: str) -> Variant:
             if re.search(pattern, text):
                 found[attr] = value
                 break
-    found["pack"] = "multipack" if _MULTIPACK.search((o.size or "").lower()) else "single"
-    found["organic"] = "organic" if "organic" in text else "conventional"
-    found["tier"] = "store brand" if is_store_brand(o.brand) else "name brand"
+    desc = (o.description or "").lower().replace("®", "").replace("™", "")
+    if rules.get("unit") != "dozen":  # eggs: "12 ct / 24 oz" is one carton, not a multipack
+        q = parse_size(o.size)
+        if _MULTIPACK.search((o.size or "").lower()):
+            found["pack"] = "multipack"
+        elif q and q.dim == "volume" and q.amount <= rules.get("single_serve_fl_oz", 0):
+            found["pack"] = "single-serve"
+        else:
+            found["pack"] = "single"
+    # The store's brand field is sometimes wrong (non-organic eggs listed under an
+    # organic brand), so organic and store-brand are read from the product name too.
+    found["organic"] = "organic" if "organic" in desc else "conventional"
+    store = is_store_brand(o.brand) or any(desc.startswith(b) for b in STORE_BRANDS)
+    found["tier"] = "store brand" if store else "name brand"
     return Variant(fam, tuple(sorted(found.items())))
+
+
+def apply_unit(o, query: str):
+    """Re-price an offer in the unit people compare this item by (eggs: per dozen)."""
+    if TAXONOMY.get(family_of(query), {}).get("unit") == "dozen":
+        n = parse_count(o.size)
+        if n:
+            o.amount, o.unit, o.unit_price = n / 12, "doz", round(o.price / n * 12, 4)
+    return o

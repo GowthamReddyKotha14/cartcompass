@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .kroger import KrogerClient, Store
-from .matching import Variant, matches, variant
+from .matching import Variant, apply_unit, matches, variant
 from .offers import Offer, from_product
 
 
@@ -39,7 +39,7 @@ class Comparison:
 
 
 def rank(offers: list[Offer], query: str) -> tuple[list[Choice], int, int]:
-    kept = [o for o in offers if matches(o, query)]
+    kept = [apply_unit(o, query) for o in offers if matches(o, query)]
     skipped = len(offers) - len(kept)
     unpriced = sum(o.unit_price is None for o in kept)
     groups: dict[Variant, list[Offer]] = defaultdict(list)
