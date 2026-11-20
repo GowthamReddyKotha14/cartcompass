@@ -5,3 +5,7 @@ install:
 
 test:
 	$(PY) -m pytest -q
+
+# Record today's prices for the standard basket (schedule this daily)
+track:
+	$(PY) -m cartcompass track

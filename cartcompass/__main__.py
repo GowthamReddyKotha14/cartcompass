@@ -6,6 +6,7 @@ import json
 import sys
 
 from .compare import Comparison, compare
+from . import history
 from .kroger import KrogerClient, KrogerError
 
 
@@ -13,7 +14,7 @@ def money(x: float) -> str:
     return f"${x:,.2f}"
 
 
-def render(c: Comparison, show: int = 5) -> str:
+def render(c: Comparison, show: int = 5, db=None) -> str:
     lines = [f"{c.query!r} near you: {len(c.stores)} stores searched, "
              f"{sum(len(ch.offers) for ch in c.choices)} matching products"
              + (f" ({c.skipped} look-alikes ignored)" if c.skipped else "")]
@@ -34,6 +35,10 @@ def render(c: Comparison, show: int = 5) -> str:
             mark = "→" if o is best else " "
             lines.append(f" {mark} {money(o.unit_price)}/{o.unit:<4} {where:<28} {o.description} "
                          f"({o.size}, {money(o.price)}{sale})")
+            if db is not None and (o.on_sale or o is best):
+                chk = history.check(db, o)
+                if chk.verdict in ("real deal", "not really a sale"):
+                    lines.append(f"   {'✓' if chk.verdict == 'real deal' else '!'} {chk.describe(o.price)}")
         trap = [o for o in ch.offers if o.available and o.unit_price and o.store_id == best.store_id
                 and o.unit_price > best.unit_price * 1.15 and o.price < best.price]
         if trap:
@@ -62,14 +67,42 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     s.add_argument("--stores", type=int, default=5, help="max stores to search")
     s.add_argument("--show", type=int, default=5, help="kinds of product to show")
     s.add_argument("--json", action="store_true")
+    s.add_argument("--no-save", action="store_true", help="don't add today's prices to the history")
+    t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
+    t.add_argument("items", nargs="*", default=["milk", "eggs", "bread", "bananas", "butter", "chicken breast"])
+    for p in (s, t):
+        p.add_argument("--db", default=str(history.DEFAULT_DB), help="history file (default data/prices.sqlite)")
+    t.add_argument("--zip", default="43402")
+    t.add_argument("--radius", type=int, default=15)
+    t.add_argument("--stores", type=int, default=5)
     a = ap.parse_args(argv)
     try:
         client = client or KrogerClient.from_env()
+        if a.cmd == "track":
+            return track(client, a)
         c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores)
     except KrogerError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    print(json.dumps(to_json(c), indent=2) if a.json else render(c, a.show))
+    db = None
+    if not a.no_save:
+        db = history.connect(a.db)
+        history.record(db, [o for ch in c.choices for o in ch.offers])
+    print(json.dumps(to_json(c), indent=2) if a.json else render(c, a.show, db))
+    return 0
+
+
+def track(client: KrogerClient, a) -> int:
+    db = history.connect(a.db)
+    total = 0
+    for item in a.items:
+        c = compare(client, item, a.zip, a.radius, a.stores)
+        n = history.record(db, [o for ch in c.choices for o in ch.offers])
+        total += n
+        print(f"{item:<16} {n:>4} prices from {len(c.stores)} stores")
+    days = db.execute("SELECT count(DISTINCT day) FROM prices").fetchone()[0]
+    print(f"saved {total} prices; history now covers {days} day{'s' if days != 1 else ''} "
+          f"({client.calls} API calls)")
     return 0
 
 

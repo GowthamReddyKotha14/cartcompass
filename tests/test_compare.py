@@ -60,3 +60,30 @@ def test_plain_kinds_come_before_niche_ones():
     offers += from_product("A", product("g", "Kroger® Vitamin D Whole Milk Gallon", "1 gal", 2.29))
     choices, _, _ = rank(offers, "milk")
     assert choices[0].variant.label() == "whole milk (store brand)"
+
+
+def test_search_saves_history_and_track_records_a_basket(tmp_path, capsys):
+    db = tmp_path / "p.sqlite"
+    assert main(["search", "milk", "--db", str(db)], client=client()) == 0
+    import sqlite3
+    assert sqlite3.connect(db).execute("SELECT count(*) FROM prices").fetchone()[0] == 6
+    assert main(["search", "milk", "--no-save", "--db", str(tmp_path / "none.sqlite")], client=client()) == 0
+    assert not (tmp_path / "none.sqlite").exists()
+    capsys.readouterr()
+    assert main(["track", "milk", "eggs", "--db", str(db)], client=client()) == 0
+    out = capsys.readouterr().out
+    assert "milk" in out and "history now covers 1 day" in out
+
+
+def test_search_shows_real_deals(tmp_path, capsys):
+    from datetime import date, timedelta
+    from cartcompass import history
+    from cartcompass.offers import from_product
+    from fake_kroger import product
+    db = history.connect(tmp_path / "p.sqlite")
+    for i in range(1, 8):  # the organic half gallon usually costs $4.49 in Bowling Green
+        history.record(db, from_product("01600878", product("3", "Simple Truth Organic® 2% Reduced Fat Milk Half Gallon",
+                                                            "1/2 gal", 4.49, brand="Simple Truth Organic")),
+                       date.today() - timedelta(days=i))
+    assert main(["search", "milk", "--db", str(tmp_path / "p.sqlite")], client=client()) == 0
+    assert "✓ real deal: $3.99 is 11% below its usual $4.49 over 7 days" in capsys.readouterr().out
