@@ -132,6 +132,7 @@ def test_auto_engine_is_free_without_a_key(monkeypatch, tmp_path):
 @pytest.mark.skipif(__import__("shutil").which("tesseract") is None, reason="needs tesseract")
 def test_free_receipt_end_to_end_on_an_image(tmp_path, capsys):
     """Render a receipt, OCR it for real, and save it, all without an account."""
+    pil = pytest.importorskip("PIL", reason="needs Pillow to draw the test image")
     from PIL import Image, ImageDraw, ImageFont
     from cartcompass.__main__ import main
     lines = ["Walmart", "BOWLING GREEN OH 43402", "GV 2% MLK GAL 007874235187 F 2.98 N",

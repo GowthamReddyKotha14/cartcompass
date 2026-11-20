@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cartcompass"
 version = "0.1.0"
@@ -15,3 +19,7 @@ cartcompass = "cartcompass.__main__:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools]
+# Only the app itself is the package; data/ (local price history) and scripts/ are not.
+packages = ["cartcompass"]
