@@ -101,3 +101,33 @@ def test_api_key_from_file(tmp_path, monkeypatch):
     assert api_key(f) == "sk-ant-123"
     with pytest.raises(ReceiptError):
         api_key(tmp_path / "none.env")
+
+
+def test_saved_receipts_join_nearby_comparisons():
+    from datetime import date
+    from cartcompass import history
+    from cartcompass.compare import rank
+    from cartcompass.receipts import nearby, save
+    db = history.connect(":memory:")
+    r = parse_response(reply(WALMART))
+    n = save(db, r, where=(41.389, -83.656))
+    assert n == 4
+    stores, offers = nearby(db, home=(41.38, -83.65), radius_miles=10, today=date(2026, 11, 19))
+    (sid,) = stores
+    assert sid.startswith("receipt:walmart:43402") and stores[sid].label.startswith("Walmart")
+    milk = next(o for o in offers if "Milk" in o.description)
+    assert (milk.unit_price, milk.unit, milk.amount) == (2.98, "gal", 1.0)
+    choices, _, _ = rank(offers, "milk")
+    assert choices[0].variant.label() == "2% milk (store brand)"   # Great Value is a store brand
+    bread = next(o for o in offers if "Bread" in o.description)
+    assert bread.price == 1.42                                       # one loaf, not the two-loaf line
+
+
+def test_far_or_old_receipts_are_left_out():
+    from datetime import date
+    from cartcompass import history
+    from cartcompass.receipts import nearby, save
+    db = history.connect(":memory:")
+    save(db, parse_response(reply(WALMART)), where=(41.389, -83.656))
+    assert nearby(db, (39.96, -82.99), 25)[0] == {}                               # Columbus is too far
+    assert nearby(db, (41.38, -83.65), 10, today=date(2027, 3, 1))[1] == []       # prices too old

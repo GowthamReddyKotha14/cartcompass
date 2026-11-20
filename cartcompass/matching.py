@@ -12,8 +12,18 @@ from dataclasses import dataclass
 
 from .units import parse_count, parse_size
 
-STORE_BRANDS = {"kroger", "simple truth", "simple truth organic", "private selection",
-                "heritage farm", "big k", "home sense", "comforts", "psst"}
+STORE_BRANDS = {
+    # Kroger
+    "kroger", "simple truth", "simple truth organic", "private selection", "heritage farm", "big k",
+    "home sense", "comforts", "psst",
+    # Walmart
+    "great value", "marketside", "sam's choice", "freshness guaranteed",
+    # ALDI
+    "friendly farms", "goldhen", "l'oven fresh", "simply nature", "never any!", "kirkwood",
+    "specially selected", "happy farms", "millville", "clancy's", "southern grove",
+    # Meijer
+    "meijer", "true goodness", "frederik's",
+}
 
 # family -> how to spot it, what to reject, and which attributes make variants
 TAXONOMY: dict[str, dict] = {

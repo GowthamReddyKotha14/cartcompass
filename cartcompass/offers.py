@@ -52,7 +52,7 @@ def from_product(store_id: str, p: dict) -> list[Offer]:
             continue  # not sold at this store
         size = it.get("size") or ""
         if (it.get("soldBy") or "").upper() == "WEIGHT":
-            unit_price, unit, amount = pay, "lb", None  # priced per pound already
+            unit_price, unit, amount = pay, "lb", 1.0  # priced per pound already; plan one pound
         else:
             q = parse_size(size)
             unit_price = unit = amount = None

@@ -202,3 +202,75 @@ def read_receipt(image: Path, key: str | None = None, model: str = MODEL,
         msg = (d.get("error") or {}).get("message") if isinstance(d.get("error"), dict) else d
         raise ReceiptError(f"AI request failed (HTTP {status}): {msg}")
     return parse_response(d, model)
+
+
+# --- saving receipts and using them next to live store prices -------------------
+
+RECENT_DAYS = 30   # receipt prices older than this are not used for comparisons
+
+
+def store_id(r: Receipt) -> str:
+    chain = "-".join(r.store.lower().split()) or "store"
+    where = "-".join((r.address or "").lower().split()) or "unknown"
+    return f"receipt:{chain}:{r.zip or '00000'}:{where}"
+
+
+def to_offers(r: Receipt):
+    """Receipt lines as offers, so they are matched, unit-priced and ranked like any other."""
+    from .offers import Offer
+    from .units import DISPLAY, parse_size
+    sid, out = store_id(r), []
+    for i in r.items:
+        if i.sold_by_weight:
+            unit_price, unit, amount = i.each, "lb", 1.0   # priced per pound; plan one pound
+        else:
+            q = parse_size(i.size)
+            unit_price = unit = amount = None
+            if q:
+                unit, amount = DISPLAY[q.dim][0], q.per()
+                unit_price = round(i.each / amount, 4)
+        out.append(Offer(store_id=sid, product_id=" ".join(i.raw.upper().split()[:4]) or i.name,
+                         upc="", brand=i.brand, description=i.name, category="", size=i.size,
+                         price=i.each, regular=i.each, on_sale=False, stock="",
+                         unit_price=unit_price, unit=unit, amount=amount))
+    return out
+
+
+def save(db, r: Receipt, where: tuple[float, float] | None, day=None) -> int:
+    """Record a receipt's prices in the history, dated by the receipt itself."""
+    from datetime import date as _date
+    from . import history
+    if day is None:
+        try:
+            day = _date.fromisoformat(r.date)
+        except ValueError:
+            day = _date.today()
+    lat, lon = where if where else (None, None)
+    db.execute("INSERT OR REPLACE INTO other_stores VALUES (?,?,?,?,?,?)",
+               (store_id(r), r.store, r.address, r.zip, lat, lon))
+    return history.record(db, to_offers(r), day)
+
+
+def nearby(db, home: tuple[float, float], radius_miles: float, days: int = RECENT_DAYS, today=None):
+    """Receipt-based stores within the radius, and each product's latest price there."""
+    from datetime import date as _date, timedelta
+    from .geo import haversine_miles
+    from .kroger import Store
+    from .offers import Offer
+    since = ((today or _date.today()) - timedelta(days=days)).isoformat()
+    stores = {}
+    for sid, chain, address, zip_, lat, lon in db.execute("SELECT * FROM other_stores"):
+        if lat is not None and haversine_miles(home, (lat, lon)) <= radius_miles:
+            stores[sid] = Store(sid, chain.upper(), f"{chain} - {address or zip_}", address or "", "", zip_ or "", lat, lon)
+    offers = []
+    for sid in stores:
+        rows = db.execute(
+            "SELECT p.store_id, p.product_id, p.size, p.upc, p.description, p.price, p.regular, p.unit_price, p.unit "
+            "FROM prices p JOIN (SELECT product_id, size, max(day) d FROM prices WHERE store_id=? AND day>=? "
+            "GROUP BY product_id, size) last ON p.product_id=last.product_id AND p.size=last.size AND p.day=last.d "
+            "WHERE p.store_id=?", (sid, since, sid))
+        for s_id, pid, size, upc, desc, price, regular, unit_price, unit in rows:
+            amount = round(price / unit_price, 6) if unit_price else None
+            offers.append(Offer(s_id, pid, upc or "", "", desc or "", "", size, price, regular or price, False,
+                                "", unit_price, unit, amount))
+    return stores, offers

@@ -37,6 +37,16 @@ CREATE TABLE IF NOT EXISTS prices (
     PRIMARY KEY (day, store_id, product_id, size)
 );
 CREATE INDEX IF NOT EXISTS prices_item ON prices (store_id, product_id, size, day);
+-- Stores known only from receipts (Walmart, ALDI, Meijer...). Location is the
+-- center of the store's ZIP code, which is close enough for trip planning.
+CREATE TABLE IF NOT EXISTS other_stores (
+    store_id TEXT PRIMARY KEY,
+    chain TEXT NOT NULL,
+    address TEXT,
+    zip TEXT,
+    lat REAL,
+    lon REAL
+);
 """
 
 
