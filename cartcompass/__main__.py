@@ -6,7 +6,8 @@ import json
 import sys
 
 from .compare import Comparison, compare
-from . import history
+from . import geo, history
+from .plan import DEFAULT_PER_MILE, plan_trip
 from .kroger import KrogerClient, KrogerError
 
 
@@ -69,6 +70,17 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     s.add_argument("--depth", type=int, default=150, help="products to read per store (default 150)")
     s.add_argument("--json", action="store_true")
     s.add_argument("--no-save", action="store_true", help="don't add today's prices to the history")
+    pl = sub.add_parser("plan", help="cheapest trip (1 or 2 stores) for a shopping list, driving included")
+    pl.add_argument("items", nargs="+", help='e.g. milk eggs bread "chicken breast" "organic eggs"')
+    pl.add_argument("--zip", default="43402")
+    pl.add_argument("--home", help="your start point as lat,lon (default: the ZIP's center)")
+    pl.add_argument("--radius", type=int, default=15)
+    pl.add_argument("--stores", type=int, default=5)
+    pl.add_argument("--max-stores", type=int, default=2, help="most stores to visit (default 2)")
+    pl.add_argument("--per-mile", type=float, default=DEFAULT_PER_MILE,
+                    help=f"cost of driving one mile, gas plus wear (default ${DEFAULT_PER_MILE:.2f})")
+    pl.add_argument("--depth", type=int, default=150)
+    pl.add_argument("--db", default=str(history.DEFAULT_DB))
     t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
     t.add_argument("items", nargs="*", default=["milk", "eggs", "bread", "bananas", "butter", "chicken breast"])
     for p in (s, t):
@@ -82,6 +94,8 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
         client = client or KrogerClient.from_env()
         if a.cmd == "track":
             return track(client, a)
+        if a.cmd == "plan":
+            return plan_cmd(client, a)
         c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores, a.depth)
     except KrogerError as e:
         print(f"error: {e}", file=sys.stderr)
@@ -92,6 +106,54 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
         history.record(db, [o for ch in c.choices for o in ch.offers])
     print(json.dumps(to_json(c), indent=2) if a.json else render(c, a.show, db))
     return 0
+
+
+def plan_cmd(client: KrogerClient, a) -> int:
+    try:
+        home = geo.parse_home(a.home) if a.home else geo.zip_center(a.zip)
+    except (KeyError, ValueError, OSError) as e:
+        print(f"error: can't place home ({e}). Pass --home lat,lon.", file=sys.stderr)
+        return 2
+    priced, stores, plans, offers = plan_trip(client, a.items, a.zip, home, a.radius, a.max_stores,
+                                              a.per_mile, a.stores, a.depth)
+    history.record(history.connect(a.db), offers)
+    name = lambda sid: stores[sid].label if sid in stores else sid
+    print(render_plan(priced, plans, name, a.per_mile))
+    return 0
+
+
+def render_plan(priced, plans, name, per_mile: float) -> str:
+    if not plans:
+        return "No store near you had these items."
+    best = plans[0]
+    out = [f"Best trip: {' + '.join(name(s) for s in best.stores)}",
+           f"  groceries {money(best.groceries)} + driving {money(best.driving)} "
+           f"({best.miles:.1f} mi round trip) = {money(best.total)}", ""]
+    for p in priced:
+        sid = best.buy.get(p.item.text)
+        if p.choice is None or sid is None:
+            out.append(f"  {p.item.text:<16} not found at these stores")
+            continue
+        o = p.at[sid]
+        size = f"{p.amount:g} {p.unit}"
+        where = f"  at {name(sid)}" if len(best.stores) > 1 else ""
+        out.append(f"  {p.item.text:<16} {money(p.cost(sid)):>7}  {p.choice.variant.label()}, {size}{where}"
+                   f"  ({o.description})")
+    others = [p for p in plans if p is not best and not p.missing]
+    alt = [next((p for p in others if len(p.stores) == k), None) for k in (1, 2)]
+    alt = [x for x in alt if x]
+    if alt:
+        out.append("")
+        out.append("Compared with:")
+        for x in alt:
+            dg, dd = x.groceries - best.groceries, x.driving - best.driving
+            why = (f"groceries {money(abs(dg))} {'cheaper' if dg < 0 else 'more'}, "
+                   f"driving {money(abs(dd))} {'more' if dd > 0 else 'less'}")
+            out.append(f"  {' + '.join(name(s) for s in x.stores):<48} {money(x.total):>8}  ({why})")
+    out.append("")
+    out.append(f"Driving is estimated at {money(per_mile)}/mile on straight-line distance x1.3. "
+               "Each item is priced as one typical package.")
+    return "\n".join(out)
 
 
 def track(client: KrogerClient, a) -> int:

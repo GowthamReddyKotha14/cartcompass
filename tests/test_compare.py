@@ -96,3 +96,24 @@ def test_reads_past_the_first_page_so_the_gallon_is_not_cut_off():
     gallon = product("g", "Kroger® 2% Reduced Fat Milk Gallon", "1 gal", 2.69)
     c = compare(KrogerClient("i", "s", transport=FakeKroger(catalog={"01600878": filler + [gallon]})), "milk", "43402")
     assert any(ch.variant.label() == "2% milk (store brand)" for ch in c.choices)
+
+
+def test_plan_command(capsys):
+    assert main(["plan", "milk", "eggs", "--home", "41.39,-83.65", "--per-mile", "0.2"], client=client()) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("Best trip: Kroger ")
+    assert "milk" in out and "groceries $" in out and "Driving is estimated" in out
+    assert "eggs             not found" in out   # the fake stores sell no eggs
+
+
+def test_plan_needs_a_home(capsys, tmp_path):
+    assert main(["plan", "milk", "--home", "999,0"], client=client()) == 2
+    assert "--home lat,lon" in capsys.readouterr().err
+
+
+def test_plan_explains_why_the_cheaper_store_loses(capsys):
+    assert main(["plan", "milk", "--home", "41.375,-83.65"], client=client()) == 0
+    out = capsys.readouterr().out
+    assert "Best trip: Kroger Bowling Green" in out
+    # Waterville sells the gallon 20 cents cheaper but is a much longer drive.
+    assert "Kroger Waterville" in out and "groceries $0.20 cheaper, driving $" in out
