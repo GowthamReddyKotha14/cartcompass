@@ -5,9 +5,11 @@ import argparse
 import json
 import sys
 
-from .compare import Comparison, compare
-from . import geo, history
-from .plan import DEFAULT_PER_MILE, plan_trip
+from pathlib import Path
+
+from .compare import Comparison, compare, live_only
+from . import geo, history, receipts
+from .plan import DEFAULT_PER_MILE, DEFAULT_PER_STOP, plan_trip
 from .kroger import KrogerClient, KrogerError
 
 
@@ -58,7 +60,7 @@ def to_json(c: Comparison) -> dict:
                          "offers": [o.to_dict() for o in ch.offers]} for ch in c.choices]}
 
 
-def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> int:
+def main(argv: list[str] | None = None, client: KrogerClient | None = None, reader=None) -> int:
     ap = argparse.ArgumentParser(prog="cartcompass", description="Find the real cheapest grocery near you.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("search", help="compare one item across nearby stores")
@@ -79,8 +81,16 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     pl.add_argument("--max-stores", type=int, default=2, help="most stores to visit (default 2)")
     pl.add_argument("--per-mile", type=float, default=DEFAULT_PER_MILE,
                     help=f"cost of driving one mile, gas plus wear (default ${DEFAULT_PER_MILE:.2f})")
+    pl.add_argument("--per-stop", type=float, default=DEFAULT_PER_STOP,
+                    help=f"what each extra store is worth to you in time (default ${DEFAULT_PER_STOP:.2f})")
     pl.add_argument("--depth", type=int, default=150)
     pl.add_argument("--db", default=str(history.DEFAULT_DB))
+    r = sub.add_parser("receipt", help="read a receipt photo (Walmart, ALDI, Meijer...) with AI and save its prices")
+    r.add_argument("images", nargs="+", type=Path)
+    r.add_argument("--zip", help="store ZIP if the receipt doesn't print one")
+    r.add_argument("--model", default=receipts.MODEL)
+    r.add_argument("--no-save", action="store_true")
+    r.add_argument("--db", default=str(history.DEFAULT_DB))
     t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
     t.add_argument("items", nargs="*", default=["milk", "eggs", "bread", "bananas", "butter", "chicken breast"])
     for p in (s, t):
@@ -90,22 +100,81 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     t.add_argument("--stores", type=int, default=5)
     t.add_argument("--depth", type=int, default=150)
     a = ap.parse_args(argv)
+    if a.cmd == "receipt":
+        return receipt_cmd(a, reader)
     try:
         client = client or KrogerClient.from_env()
         if a.cmd == "track":
             return track(client, a)
         if a.cmd == "plan":
             return plan_cmd(client, a)
-        c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores, a.depth)
+        c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores, a.depth, receipt_stores(a))
     except KrogerError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
     db = None
     if not a.no_save:
         db = history.connect(a.db)
-        history.record(db, [o for ch in c.choices for o in ch.offers])
+        history.record(db, live_only([o for ch in c.choices for o in ch.offers]))
     print(json.dumps(to_json(c), indent=2) if a.json else render(c, a.show, db))
     return 0
+
+
+def receipt_stores(a, home=None):
+    """Nearby stores known from saved receipts, or None if there are none (or no history yet)."""
+    if not Path(a.db).exists():
+        return None
+    db = history.connect(a.db)
+    if not db.execute("SELECT 1 FROM other_stores LIMIT 1").fetchone():
+        return None
+    try:
+        home = home or geo.zip_center(a.zip)
+    except (KeyError, OSError):
+        return None
+    stores, offers = receipts.nearby(db, home, a.radius)
+    return (stores, offers) if stores else None
+
+
+def receipt_cmd(a, reader=None) -> int:
+    reader = reader or receipts.read_receipt
+    db = None if a.no_save else history.connect(a.db)
+    status = 0
+    for img in a.images:
+        try:
+            r = reader(img, model=a.model)
+        except (receipts.ReceiptError, OSError) as e:
+            print(f"{img.name}: error: {e}", file=sys.stderr)
+            status = 2
+            continue
+        print(render_receipt(img.name, r))
+        if db is not None:
+            z = r.zip or a.zip
+            try:
+                where = geo.zip_center(z) if z else None
+            except (KeyError, OSError):
+                where = None
+            n = receipts.save(db, r, where)
+            note = "" if where else " (no store ZIP: pass --zip so it can be used in comparisons)"
+            print(f"saved {n} prices from {r.store}{note}\n")
+    return status
+
+
+def render_receipt(name: str, r) -> str:
+    from .units import unit_price
+    head = f"{name}: {r.store}" + (f", {r.address}" if r.address else "") + (f" {r.zip}" if r.zip else "") \
+        + (f" on {r.date}" if r.date else "")
+    lines = [head]
+    for i in r.items:
+        up = (i.each, "lb") if i.sold_by_weight else unit_price(i.each, i.size)
+        per = f"{money(up[0])}/{up[1]}" if up else ""
+        qty = f"{i.quantity:g} x " if i.quantity != 1 and not i.sold_by_weight else ""
+        flag = "" if i.confident else "  ?"
+        lines.append(f"  {i.raw[:28]:<28} → {i.name[:40]:<40} {i.size:<8} {qty}{money(i.each):>7} {per:>11}{flag}")
+    if r.adds_up:
+        lines.append(f"  ✓ items add up to the subtotal ({money(r.subtotal)})")
+    for c in r.checks:
+        lines.append(f"  ! {c}")
+    return "\n".join(lines)
 
 
 def plan_cmd(client: KrogerClient, a) -> int:
@@ -115,20 +184,22 @@ def plan_cmd(client: KrogerClient, a) -> int:
         print(f"error: can't place home ({e}). Pass --home lat,lon.", file=sys.stderr)
         return 2
     priced, stores, plans, offers = plan_trip(client, a.items, a.zip, home, a.radius, a.max_stores,
-                                              a.per_mile, a.stores, a.depth)
-    history.record(history.connect(a.db), offers)
+                                              a.per_mile, a.stores, a.depth, receipt_stores(a, home),
+                                              a.per_stop)
+    history.record(history.connect(a.db), live_only(offers))
     name = lambda sid: stores[sid].label if sid in stores else sid
-    print(render_plan(priced, plans, name, a.per_mile))
+    print(render_plan(priced, plans, name, a.per_mile, a.per_stop))
     return 0
 
 
-def render_plan(priced, plans, name, per_mile: float) -> str:
+def render_plan(priced, plans, name, per_mile: float, per_stop: float = DEFAULT_PER_STOP) -> str:
     if not plans:
         return "No store near you had these items."
     best = plans[0]
+    extra = f" + extra stop {money(per_stop)}" if len(best.stores) > 1 else ""
     out = [f"Best trip: {' + '.join(name(s) for s in best.stores)}",
            f"  groceries {money(best.groceries)} + driving {money(best.driving)} "
-           f"({best.miles:.1f} mi round trip) = {money(best.total)}", ""]
+           f"({best.miles:.1f} mi round trip){extra} = {money(best.total)}", ""]
     for p in priced:
         sid = best.buy.get(p.item.text)
         if p.choice is None or sid is None:
@@ -149,10 +220,13 @@ def render_plan(priced, plans, name, per_mile: float) -> str:
             dg, dd = x.groceries - best.groceries, x.driving - best.driving
             why = (f"groceries {money(abs(dg))} {'cheaper' if dg < 0 else 'more'}, "
                    f"driving {money(abs(dd))} {'more' if dd > 0 else 'less'}")
+            ds = len(x.stores) - len(best.stores)
+            if ds:
+                why += f", {'one more' if ds > 0 else 'one fewer'} stop"
             out.append(f"  {' + '.join(name(s) for s in x.stores):<48} {money(x.total):>8}  ({why})")
     out.append("")
-    out.append(f"Driving is estimated at {money(per_mile)}/mile on straight-line distance x1.3. "
-               "Each item is priced as one typical package.")
+    out.append(f"Driving is estimated at {money(per_mile)}/mile on straight-line distance x1.3, and each "
+               f"extra store counts as {money(per_stop)} of your time. Each item is priced as one typical package.")
     return "\n".join(out)
 
 
@@ -161,7 +235,7 @@ def track(client: KrogerClient, a) -> int:
     total = 0
     for item in a.items:
         c = compare(client, item, a.zip, a.radius, a.stores, a.depth)
-        n = history.record(db, [o for ch in c.choices for o in ch.offers])
+        n = history.record(db, live_only([o for ch in c.choices for o in ch.offers]))
         total += n
         print(f"{item:<16} {n:>4} prices from {len(c.stores)} stores")
     days = db.execute("SELECT count(DISTINCT day) FROM prices").fetchone()[0]

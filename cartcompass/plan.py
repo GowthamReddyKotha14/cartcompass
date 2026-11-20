@@ -20,6 +20,7 @@ from .matching import TAXONOMY, family_of
 from .offers import Offer
 
 DEFAULT_PER_MILE = 0.20   # rough gas-plus-wear cost of driving a mile; change with --per-mile
+DEFAULT_PER_STOP = 2.00   # what an extra store's parking, lines and time is worth to you; --per-stop
 
 
 @dataclass
@@ -83,14 +84,16 @@ class Plan:
     miles: float
     driving: float
     missing: list[str]
+    stop_cost: float = 0.0       # charged for each store after the first
 
     @property
     def total(self) -> float:
-        return round(self.groceries + self.driving, 2)
+        return round(self.groceries + self.driving + self.stop_cost * (len(self.stores) - 1), 2)
 
 
 def best_plans(priced: list[Priced], stores: dict[str, Store], home: tuple[float, float],
-               max_stores: int = 2, per_mile: float = DEFAULT_PER_MILE) -> list[Plan]:
+               max_stores: int = 2, per_mile: float = DEFAULT_PER_MILE,
+               per_stop: float = DEFAULT_PER_STOP) -> list[Plan]:
     where = {s.location_id: (s.lat, s.lon) for s in stores.values() if s.lat is not None}
     plans = []
     for k in range(1, max_stores + 1):
@@ -109,19 +112,19 @@ def best_plans(priced: list[Priced], stores: dict[str, Store], home: tuple[float
                 continue  # a store with nothing to buy is just a detour; the smaller set covers it
             miles = route_miles(home, [where[s] for s in used])
             plans.append(Plan(used, buy, round(groceries, 2), round(miles, 1),
-                              round(miles * per_mile, 2), missing))
+                              round(miles * per_mile, 2), missing, per_stop))
     plans.sort(key=lambda p: (len(p.missing), p.total))
     return plans
 
 
 def plan_trip(client: KrogerClient, items: list[str], zip_code: str, home: tuple[float, float],
               radius_miles: int = 15, max_stores: int = 2, per_mile: float = DEFAULT_PER_MILE,
-              stores: int = 5, depth: int = 150):
+              stores: int = 5, depth: int = 150, extra=None, per_stop: float = DEFAULT_PER_STOP):
     parsed = [Item.parse(t) for t in items]
     priced, all_stores, offers = [], {}, []
     for it in parsed:
-        c = compare(client, it.family, zip_code, radius_miles, stores, depth)
+        c = compare(client, it.family, zip_code, radius_miles, stores, depth, extra)
         all_stores.update(c.stores)
         offers += [o for ch in c.choices for o in ch.offers]
         priced.append(price_item(it, c.choices))
-    return priced, all_stores, best_plans(priced, all_stores, home, max_stores, per_mile), offers
+    return priced, all_stores, best_plans(priced, all_stores, home, max_stores, per_mile, per_stop), offers

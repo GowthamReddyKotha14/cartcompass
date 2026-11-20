@@ -79,3 +79,13 @@ def test_plans_that_get_everything_come_first():
                   offers("FAR", ("Kroger Grade A Large Eggs", "12 ct", 2.5)))
     best = best_plans([milk, eggs], STORES, HOME, max_stores=1)[0]
     assert best.stores == ("FAR",) and not best.missing
+
+
+def test_a_second_stop_must_save_more_than_it_costs_in_time():
+    milk = priced("milk", offers("NEAR", ("Kroger 2% Milk Gallon", "1 gal", 2.69)),
+                  offers("FAR", ("Kroger 2% Milk Gallon", "1 gal", 2.99)))
+    eggs = priced("eggs", offers("NEAR", ("Kroger Grade A Large Eggs", "12 ct", 2.49)),
+                  offers("FAR", ("Kroger Grade A Large Eggs", "12 ct", 2.00)))
+    # Splitting saves 30 cents over the cheaper single store, with driving free (per_mile=0).
+    assert len(best_plans([milk, eggs], STORES, HOME, per_mile=0, per_stop=2.0)[0].stores) == 1
+    assert len(best_plans([milk, eggs], STORES, HOME, per_mile=0, per_stop=0.1)[0].stores) == 2

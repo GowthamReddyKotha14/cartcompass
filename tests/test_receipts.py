@@ -132,3 +132,60 @@ def test_far_or_old_receipts_are_left_out():
     assert nearby(db, (39.96, -82.99), 25)[0] == {}                               # Columbus is too far
     assert nearby(db, (41.38, -83.65), 10, today=date(2027, 3, 1))[1] == []       # prices too old
 
+
+def _gazetteer(tmp_path):
+    d = tmp_path / "data"
+    d.mkdir(exist_ok=True)
+    (d / "zcta_centroids.tsv").write_text("GEOID\tINTPTLAT\tINTPTLONG\n43402\t41.389\t-83.656\n")
+
+
+def test_receipt_command_reads_saves_and_shows_up_in_search(tmp_path, capsys):
+    from cartcompass.__main__ import main
+    from cartcompass.kroger import KrogerClient
+    from fake_kroger import FakeKroger
+    _gazetteer(tmp_path)
+    img = tmp_path / "walmart.jpg"
+    img.write_bytes(b"jpeg")
+    reader = lambda path, model: parse_response(reply(WALMART), model)
+    assert main(["receipt", str(img)], reader=reader) == 0
+    out = capsys.readouterr().out
+    assert "walmart.jpg: Walmart, 131 W Gypsy Lane Rd 43402 on 2026-11-18" in out
+    assert "→ Great Value 2% Reduced Fat Milk" in out and "$2.98/gal" in out
+    assert "✓ items add up to the subtotal ($10.45)" in out and "saved 4 prices from Walmart" in out
+
+    from datetime import date
+    if date.today() > date(2026, 12, 18):
+        return  # the sample receipt is older than the 30-day window by now
+    kroger = KrogerClient("i", "s", transport=FakeKroger(), sleep=lambda s: None)
+    assert main(["search", "milk", "--zip", "43402", "--no-save"], client=kroger) == 0
+    out = capsys.readouterr().out
+    assert "3 stores searched" in out and "Walmart 131 W Gypsy Lane Rd" in out
+
+
+def test_receipt_prices_are_not_rerecorded_as_today(tmp_path, capsys):
+    import sqlite3
+    from cartcompass.__main__ import main
+    from cartcompass.kroger import KrogerClient
+    from fake_kroger import FakeKroger
+    _gazetteer(tmp_path)
+    img = tmp_path / "w.jpg"
+    img.write_bytes(b"jpeg")
+    main(["receipt", str(img)], reader=lambda p, model: parse_response(reply(WALMART), model))
+    main(["search", "milk", "--zip", "43402"], client=KrogerClient("i", "s", transport=FakeKroger()))
+    days = sqlite3.connect(tmp_path / "data" / "prices.sqlite").execute(
+        "SELECT DISTINCT day FROM prices WHERE store_id LIKE 'receipt:%'").fetchall()
+    assert days == [("2026-11-18",)]
+
+
+def test_receipt_errors_do_not_stop_the_batch(tmp_path, capsys):
+    from cartcompass.__main__ import main
+    a, b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    a.write_bytes(b"x"); b.write_bytes(b"x")
+
+    def reader(path, model):
+        if path.name == "a.jpg":
+            raise ReceiptError("The model did not return a receipt (is the photo a receipt?)")
+        return parse_response(reply(WALMART))
+    assert main(["receipt", str(a), str(b), "--no-save"], reader=reader) == 2
+    io = capsys.readouterr()
+    assert "a.jpg: error" in io.err and "b.jpg: Walmart" in io.out
