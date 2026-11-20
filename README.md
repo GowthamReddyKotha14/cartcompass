@@ -55,25 +55,31 @@ Bureau's ZIP list, or `--home lat,lon`.)
 
 ## Walmart, ALDI and Meijer: from receipts
 
-These chains publish no price API, so their prices come from receipts. An AI
-vision model (Claude, via the Anthropic API) reads the photo and decodes each
-line:
+These chains publish no price API, so their prices come from receipt photos.
+Two readers, same checks:
+
+- **free** (default): text recognition on your own Mac (Apple Vision, offline;
+  or Tesseract), then rules: a dictionary of store shorthand (`GV` = Great Value,
+  `MLK` = milk, `BNLS` = boneless), sizes from tokens like `GAL` and `18CT`, and
+  repairs for classic OCR misreads (`/1b` for `/lb`, `200Z` for `20OZ`).
+- **ai**: Claude vision via the Anthropic API decodes any line, including ones
+  the dictionary doesn't know. Needs `ANTHROPIC_API_KEY` and API credits.
 
 ```
 $ cartcompass receipt IMG_2041.jpg
-IMG_2041.jpg: Walmart, 131 W Gypsy Lane Rd 43402 on 2026-11-18
-  GV 2% MLK GAL 007874235187 F → Great Value 2% Reduced Fat Milk   1 gal    $2.98   $2.98/gal
-  GV LG WHT EGG 18CT F 3.47 N  → Great Value Large White Eggs      18 ct    $3.47
-  ✓ items add up to the subtotal ($10.45)
-saved 4 prices from Walmart
+IMG_2041.jpg: Walmart, 131 W GYPSY LANE RD 43402 on 2026-11-18  [read with free-ocr (apple-vision)]
+  GV 2% MLK GAL 007874235187 F → Great Value 2% milk        1 gal    $2.98   $2.98/gal
+  GV LG WHT EGG 18CT 06053881  → Great Value large white eggs 18 ct  $3.47
+  MRKT SD BKRY ITM 00213940000 → MRKT SD BKRY ITM                    $4.98            ?
+  ✓ items add up to the subtotal ($15.43)
+  ! 1 line(s) only partly decoded: MRKT SD BKRY ITM ...
 ```
 
-(Example output from the test data.) The model's answer is checked, not
-trusted: line prices must add up to the printed subtotal, guessed lines are
-marked `?`, and sizes are never invented. Saved receipt prices from the last 30
-days join `search` and `plan` for stores inside the radius. Needs
-`ANTHROPIC_API_KEY` in `~/.cartcompass.env`; iPhone HEIC photos are converted
-automatically on macOS.
+(Illustrative output.) Neither reader is trusted blindly: line prices must add
+up to the printed subtotal, undecoded lines are marked `?`, and sizes are never
+invented. Saved receipt prices from the last 30 days join `search` and `plan`
+for stores inside the radius. On a Mac, enable the free reader with
+`pip install -e ".[mac]"`.
 
 ## Is that sale real?
 
@@ -94,6 +100,6 @@ work. Next: a public showcase page.
 
 - Live store prices from the official [Kroger Public API](https://developer.kroger.com/)
   (non-commercial use). Keys live in `~/.cartcompass.env`, never in this repo.
-- Other chains from your own receipt photos, read with the
-  [Anthropic API](https://docs.claude.com/).
+- Other chains from your own receipt photos, read on-device (Apple Vision or
+  Tesseract), or optionally with the [Anthropic API](https://docs.claude.com/).
 - ZIP code locations from the U.S. Census Bureau's ZCTA gazetteer (public domain).
