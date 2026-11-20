@@ -73,3 +73,20 @@ def test_white_bread_and_other_bread_get_different_labels():
     offers = [offer("Kroger® White Bread", "20 oz", "Kroger"), offer("Kroger® Honey Wheat Bread", "20 oz", "Kroger")]
     labels = [c.variant.label() for c in rank(offers, "bread")[0]]
     assert len(labels) == len(set(labels)) == 2
+
+
+@pytest.mark.parametrize("query,desc,size,brand,expected", [
+    # Real listings that a 150-deep search returned for these words (November 2026).
+    ("butter", "Bakery Fresh Peanut Butter Cookies", "12 count", "Bakery Fresh", None),
+    ("butter", "Kroger® Salted Butter Sticks", "16 oz", "Kroger", "salted butter (store brand)"),
+    ("butter", "Land O Lakes® Unsalted Butter Sticks", "16 oz", "Land O Lakes", "unsalted butter (name brand)"),
+    ("butter", "I Can't Believe It's Not Butter! Original Spread", "15 oz", "ICBINB", "spread butter (name brand)"),
+    ("chicken breast", "Tyson Frozen Stuffed Chicken Breasts Cordon Bleu", "2 count", "Tyson", None),
+    ("chicken breast", "Kroger® Boneless Skinless Chicken Breasts", "3 lb", "Kroger", "chicken breast (store brand)"),
+    ("chicken breast", "Kroger® Frozen Boneless Skinless Chicken Breasts", "3 lb", "Kroger", "frozen chicken breast (store brand)"),
+    ("bananas", "Kroger® Frozen Sliced Bananas", "16 oz", "Kroger", None),
+    ("bananas", "Fresh Banana - Each", "1 each", "", "bananas (name brand)"),
+    ("bread", "Smart Way™ Enriched White Bread", "16 oz", "Smart Way", "white bread (store brand)"),
+])
+def test_real_everyday_items(query, desc, size, brand, expected):
+    assert kind(query, desc, size, brand) == expected

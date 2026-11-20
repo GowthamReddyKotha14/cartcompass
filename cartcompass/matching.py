@@ -14,7 +14,7 @@ from .units import parse_count, parse_size
 
 STORE_BRANDS = {
     # Kroger
-    "kroger", "simple truth", "simple truth organic", "private selection", "heritage farm", "big k",
+    "kroger", "simple truth", "simple truth organic", "private selection", "heritage farm", "big k", "smart way",
     "home sense", "comforts", "psst",
     # Walmart
     "great value", "marketside", "sam's choice", "freshness guaranteed",
@@ -71,14 +71,47 @@ TAXONOMY: dict[str, dict] = {
                   "format": [("frozen", r"\bfrozen\b"), ("keto", r"\bketo\b|low[- ]carb")]},
         "default": {"format": "fresh"},
     },
+    "butter": {
+        "reject": [r"peanut butter", r"\b(apple|almond|cashew|nut|seed|cookie|body|cocoa|shea|sunflower|pumpkin)\s+butter",
+                   r"\bcookies?\b", r"\bpopcorn\b", r"\bcrackers?\b", r"\bcake\b", r"\bbiscuits?\b",
+                   r"\bcroissants?\b", r"\bbuttermilk\b", r"\bbutterscotch\b", r"butter beans?", r"\bcandy\b",
+                   r"\bcups?\b", r"\bsauce\b", r"\bbread\b", r"\brolls?\b", r"\bcroutons?\b", r"\bflavou?red\b",
+                   r"\bpecan\b", r"\btoffee\b", r"\bspray\b", r"\bpasta\b", r"\brice\b", r"\bpotatoes\b",
+                   r"\bbutterfinger\b", r"\bbutterball\b"],
+        "attrs": {"salt": [("unsalted", r"unsalted|sweet cream unsalted"), ("salted", r"\bsalted\b")],
+                  "format": [("spread", r"\bspread|spreadable|\btub\b|whipped|i can'?t believe"),
+                             ("plant-based", r"plant[- ]based|vegan|\boat\b|olive oil")]},
+        "default": {"format": "sticks"},
+    },
+    "chicken breast": {
+        "reject": [r"\bstuffed\b", r"\bbreaded\b", r"\bnuggets?\b", r"\bstrips?\b", r"\bpatt(y|ies)\b",
+                   r"cordon bleu", r"\bkiev\b", r"fully cooked", r"\bgrilled\b", r"\brotisserie\b",
+                   r"\bsandwich", r"\bsoup\b", r"\bbroth\b", r"\b(dog|cat|pet)\b", r"\bdeli\b",
+                   r"\blunch\s*meat\b", r"\bcanned\b", r"\bchunk\b", r"\bcan\b", r"\bbites\b", r"\bwings?\b",
+                   r"\bmeal\b", r"\bbowl\b", r"\bsalad\b", r"\bslices?\b", r"\bjerky\b", r"\bseasoning\b",
+                   r"\bbuffalo\b", r"\bteriyaki\b", r"\bmarinated\b", r"\bfrozen\b.*\bfritters?\b"],
+        "attrs": {"cut": [("tenderloins", r"tenderloin|tenders"), ("thin-sliced", r"thin[- ](sliced|cut)")],
+                  "format": [("frozen", r"\bfrozen\b|individually (frozen|wrapped)|\biqf\b")],
+                  "raising": [("air-chilled", r"air[- ]chilled"), ("free-range", r"free[- ]range|pasture")]},
+        "default": {"format": "fresh"},
+    },
+    "bananas": {
+        "reject": [r"\bchips?\b", r"\bbread\b", r"\bpudding\b", r"\bpeppers?\b", r"\bcream\b",
+                   r"\bdried\b", r"\bbaby\b", r"\bflavou?red\b", r"\bsmoothie\b", r"\bsplit\b", r"\bmuffins?\b",
+                   r"\bcereal\b", r"\bpopsicles?\b", r"\bbars?\b", r"\btaffy\b", r"\bcandy\b", r"\bnut\b",
+                   r"\bfrozen\b", r"\bsliced\b", r"\bpuree\b", r"\bpouch(es)?\b", r"\bpancake"],
+        "attrs": {"kind": [("plantains", r"plantain"), ("baby", r"\bbaby\b|\bmanzano\b|\bred bananas?\b")]},
+        "default": {},
+    },
 }
 
 # Attribute values that describe the ordinary version of an item; not shown in labels.
-PLAIN = {("type", "regular"), ("format", "fresh"), ("housing", "caged"), ("color", "white"),
-         ("organic", "conventional"), ("pack", "single")}
+PLAIN = {("type", "regular"), ("format", "fresh"), ("format", "sticks"), ("housing", "caged"),
+         ("color", "white"), ("organic", "conventional"), ("pack", "single")}
 
 # Reading order for labels: "1% shelf-stable multipack organic milk".
-LABEL_ORDER = ["size", "fat", "grain", "type", "housing", "color", "format", "pack", "organic"]
+LABEL_ORDER = ["size", "fat", "salt", "cut", "grain", "type", "kind", "housing", "color", "raising", "format",
+               "pack", "organic"]
 
 ALIASES = {"egg": "eggs", "dozen eggs": "eggs", "2% milk": "milk", "whole milk": "milk",
            "loaf of bread": "bread"}
@@ -96,7 +129,8 @@ class Variant:
     @property
     def plainness(self) -> int:
         """How many ways this differs from the ordinary item (0 = plain 2% milk jug)."""
-        return sum((k, v) not in PLAIN for k, v in self.attrs if k not in ("tier", "fat", "size", "grain"))
+        return sum((k, v) not in PLAIN for k, v in self.attrs
+                   if k not in ("tier", "fat", "size", "grain", "salt", "cut"))
 
     def label(self) -> str:
         attrs = dict(self.attrs)
@@ -116,7 +150,7 @@ def _text(o) -> str:
 
 
 def is_store_brand(brand: str) -> bool:
-    b = (brand or "").lower().replace("®", "").strip()
+    b = (brand or "").lower().replace("®", "").replace("™", "").strip()
     return b in STORE_BRANDS or b.startswith("kroger")
 
 

@@ -113,6 +113,11 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None, read
         d = build(Path(a.db), Path(a.out))
         print(f"wrote {a.out}/findings.js: {len(d['findings'])} findings from {d['stores']} stores on {d['day']} "
               f"({d['days_tracked']} days tracked) and {a.out}/cartcompass.zip")
+        print("Check these before publishing; each should be the everyday version of the item:")
+        for f in d["findings"]:
+            p = f["stores"][0]
+            spread = f"{f['spread']:.0%} apart" if f["spread"] >= 0.005 else "same price everywhere"
+            print(f"  {f['item']:<15} {p['product'][:48]:<48} {p['size']:<8} {spread}")
         return 0
     try:
         client = client or KrogerClient.from_env()

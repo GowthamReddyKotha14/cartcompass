@@ -38,13 +38,14 @@ def same_product(per_store: list[Offer]) -> bool:
 
 
 def pick(choices) -> list:
-    """Kinds worth reporting, best first: the exact same product compared at every
-    store beats a mix of similar products; then wider store coverage; then the
-    most listings (the everyday version). Niche kinds (two or more special traits,
-    like shelf-stable organic) are left out."""
-    ok = [c for c in choices if c.variant.plainness <= 1 and len(c.best_per_store()) >= 2]
-    return sorted(ok, key=lambda c: (not same_product(c.best_per_store()), -len(c.best_per_store()),
-                                     -len(c.offers)))
+    """Kinds worth reporting, best first. The everyday version comes first: plain
+    (not almond, not pasture-raised, not frozen) and store brand, the budget
+    staple most shoppers buy. Then the exact same product at every store beats a
+    mix of similar products; then wider store coverage; then more listings."""
+    ok = [c for c in choices if c.variant.plainness == 0 and len(c.best_per_store()) >= 2]
+    tier = lambda c: dict(c.variant.attrs).get("tier") != "store brand"
+    return sorted(ok, key=lambda c: (tier(c), not same_product(c.best_per_store()),
+                                     -len(c.best_per_store()), -len(c.offers)))
 
 
 def finding(offers: list[Offer], item: str, labels: dict[str, str]) -> dict | None:
