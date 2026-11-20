@@ -153,3 +153,33 @@ def test_free_receipt_end_to_end_on_an_image(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "Great Value 2% milk" in out and "✓ items add up to the subtotal ($6.45)" in out
     assert "saved 2 prices from Walmart" in out
+
+
+# Real Tesseract output for the sample receipt image, with its three misreads.
+SAMPLE_OCR = """\
+Walmart-style test lines
+BOWLING GREEN OH 43402
+GV WHT BRD 200Z 007874206301 2 @ 1.422.84 N
+BANANAS 000000004011 F 1.16 N
+2.31 lb @ 0.50 /1lb
+CHKN BRST BNLS SKNLS 3LB 02294 F 8.97 N
+SUBTOTAL 12.97
+""".splitlines()
+
+
+def test_prices_run_together_slash_1lb_and_short_codes():
+    r = parse_text(SAMPLE_OCR)
+    bread, bananas, chicken = r.items
+    assert (bread.quantity, bread.price, bread.each) == (2, 2.84, 1.42)     # "1.422.84"
+    assert bananas.sold_by_weight and bananas.each == 0.5                   # "/1lb"
+    assert (chicken.name, chicken.size, chicken.confident) == ("chicken breast boneless skinless", "3 lb", True)  # "02294"
+    assert r.adds_up is True
+
+
+@pytest.mark.skipif(__import__("shutil").which("tesseract") is None, reason="needs tesseract")
+def test_sample_receipt_image_reads_completely():
+    """tests/data/sample_receipt.png is a labeled test image (not a real receipt)."""
+    from pathlib import Path
+    r = read_receipt_free(Path(__file__).parent / "data" / "sample_receipt.png")
+    assert [i.price for i in r.items] == [2.98, 3.47, 2.84, 1.16, 3.84, 8.97]
+    assert r.adds_up is True and all(i.confident for i in r.items)

@@ -45,7 +45,7 @@ SKIP = re.compile(r"\b(sub\s*total|subtotal|total|tax|change|cash|visa|mastercar
                   r"items sold|thank|survey|store\s*#|st#|op#|te#|tr#)\b", re.I)
 SUBTOTAL = re.compile(r"sub\s*total\s*\$?\s*(\d+\.\d{2})", re.I)
 PRICE_AT_END = re.compile(r"^(?P<body>.*?)\s+\$?(?P<price>-?\d{1,4}\.\d{2})\s*-?\s*[A-Z]{0,2}\s*$")
-UPC = re.compile(r"\b\d{6,14}\b")
+UPC = re.compile(r"\b\d{4,14}\b")                     # UPCs and 4-5 digit produce/PLU codes
 TAX_FLAG = re.compile(r"\s+[A-Z]$")                      # Walmart's "F"/"N"/"X" flags after the code
 MULTI = re.compile(r"(\d+)\s*@\s*\$?(\d+\.\d{2})")       # "2 @ 1.42"
 WEIGHT = re.compile(r"(\d+\.\d+)\s*lb\s*@\s*\$?(\d+\.\d{2})\s*/\s*lb", re.I)
@@ -156,6 +156,8 @@ def decode_name(body: str) -> tuple[str, str, str, bool]:
 # Characters OCR commonly confuses on receipts, fixed only where the meaning is unambiguous.
 OCR_FIXES = [
     (re.compile(r"(?<=[\d/@ ])1b\b"), "lb"),          # "0.50 /1b" -> "/lb"
+    (re.compile(r"/\s*1lb\b"), "/lb"),                 # "0.50 /1lb" -> "/lb"
+    (re.compile(r"\b(\d+\.\d{2})(\d+\.\d{2})\b"), r"\1 \2"),  # "1.422.84": two prices run together
     (re.compile(r"(\d)0Z\b"), r"\1OZ"),               # "200Z" -> "20OZ" (letter O read as zero)
     (re.compile(r"(\d)\s?0z\b"), r"\1oz"),
     (re.compile(r"(?<=\d)\s*,\s*(?=\d{2}\b)"), "."),  # "2,98" -> "2.98"

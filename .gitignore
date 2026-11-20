@@ -6,4 +6,4 @@ __pycache__/
 # Secrets and local data never go to GitHub
 .env
 *.env
-data/
+/data/
