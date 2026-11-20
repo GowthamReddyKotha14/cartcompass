@@ -28,7 +28,8 @@ def render(c: Comparison, show: int = 5) -> str:
             continue
         for o in ch.best_per_store():
             store = c.stores.get(o.store_id)
-            where = store.name if store else o.store_id
+            where = store.label if store else o.store_id
+            where = where if len(where) <= 28 else where[:27] + "…"
             sale = f", sale from {money(o.regular)}" if o.on_sale else ""
             mark = "→" if o is best else " "
             lines.append(f" {mark} {money(o.unit_price)}/{o.unit:<4} {where:<28} {o.description} "

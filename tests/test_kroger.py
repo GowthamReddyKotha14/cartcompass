@@ -51,3 +51,12 @@ def test_credentials_from_file(tmp_path, monkeypatch):
 
 def test_secret_never_appears_in_repr():
     assert "hunter2" not in repr(KrogerClient("id", "hunter2"))
+
+
+def test_store_names_are_short_and_clear():
+    from cartcompass.kroger import Store
+    mk = lambda name: Store("1", "KROGER", name, "", "Maumee", "", None, None)
+    assert mk("Kroger - Kroger Maumee").label == "Kroger Maumee"
+    assert mk("Kroger Marketplace - Perrysburg Marketplace").label == "Kroger Marketplace Perrysburg"
+    assert mk("Kroger - Bowling Green").label == "Kroger Bowling Green"
+    assert mk("Kroger - Kroger").short_name == "Maumee"

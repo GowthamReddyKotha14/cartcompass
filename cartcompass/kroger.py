@@ -68,6 +68,20 @@ class Store:
     lat: float | None
     lon: float | None
 
+    @property
+    def short_name(self) -> str:
+        """'Kroger - Kroger Maumee' -> 'Maumee'; 'Kroger Marketplace - Perrysburg Marketplace' -> 'Perrysburg'."""
+        name = self.name.split(" - ", 1)[-1]
+        for junk in ("Kroger Marketplace", "Kroger", "Marketplace"):
+            name = name.replace(junk, "")
+        name = " ".join(name.split())
+        return name or self.city or self.location_id
+
+    @property
+    def label(self) -> str:
+        kind = "Kroger Marketplace" if "marketplace" in self.name.lower() else self.chain.title() or "Store"
+        return f"{kind} {self.short_name}"
+
     @classmethod
     def from_api(cls, d: dict) -> "Store":
         a, g = d.get("address") or {}, d.get("geolocation") or {}
