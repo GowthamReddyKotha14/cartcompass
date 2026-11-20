@@ -17,7 +17,10 @@ from .compare import rank
 from .matching import family_of
 from .offers import Offer
 
-ITEMS = ["milk", "eggs", "bread", "butter", "chicken breast", "bananas"]
+# Packaged staples with clear sizes. Loose produce (bananas) is left out: stores
+# list it by weight or each, and "banana" appears in too many other products for
+# a public claim about it to be safe.
+ITEMS = ["milk", "eggs", "bread", "butter", "chicken breast"]
 PACKAGE = Path(__file__).resolve().parent
 
 
