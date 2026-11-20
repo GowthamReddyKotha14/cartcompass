@@ -55,7 +55,7 @@ def rank(offers: list[Offer], query: str) -> tuple[list[Choice], int, int]:
 
 
 def compare(client: KrogerClient, query: str, zip_code: str, radius_miles: int = 10,
-            max_stores: int = 5, per_store: int = 50) -> Comparison:
+            max_stores: int = 5, per_store: int = 150) -> Comparison:
     stores = client.stores(zip_code, radius_miles=radius_miles, limit=max_stores)
     offers: list[Offer] = []
     for s in stores:

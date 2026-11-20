@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     s.add_argument("--radius", type=int, default=15, help="miles (default 15)")
     s.add_argument("--stores", type=int, default=5, help="max stores to search")
     s.add_argument("--show", type=int, default=5, help="kinds of product to show")
+    s.add_argument("--depth", type=int, default=150, help="products to read per store (default 150)")
     s.add_argument("--json", action="store_true")
     s.add_argument("--no-save", action="store_true", help="don't add today's prices to the history")
     t = sub.add_parser("track", help="record today's prices for a list of items (run daily)")
@@ -75,12 +76,13 @@ def main(argv: list[str] | None = None, client: KrogerClient | None = None) -> i
     t.add_argument("--zip", default="43402")
     t.add_argument("--radius", type=int, default=15)
     t.add_argument("--stores", type=int, default=5)
+    t.add_argument("--depth", type=int, default=150)
     a = ap.parse_args(argv)
     try:
         client = client or KrogerClient.from_env()
         if a.cmd == "track":
             return track(client, a)
-        c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores)
+        c = compare(client, " ".join(a.item), a.zip, a.radius, a.stores, a.depth)
     except KrogerError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
@@ -96,7 +98,7 @@ def track(client: KrogerClient, a) -> int:
     db = history.connect(a.db)
     total = 0
     for item in a.items:
-        c = compare(client, item, a.zip, a.radius, a.stores)
+        c = compare(client, item, a.zip, a.radius, a.stores, a.depth)
         n = history.record(db, [o for ch in c.choices for o in ch.offers])
         total += n
         print(f"{item:<16} {n:>4} prices from {len(c.stores)} stores")

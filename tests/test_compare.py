@@ -87,3 +87,12 @@ def test_search_shows_real_deals(tmp_path, capsys):
                        date.today() - timedelta(days=i))
     assert main(["search", "milk", "--db", str(tmp_path / "p.sqlite")], client=client()) == 0
     assert "✓ real deal: $3.99 is 11% below its usual $4.49 over 7 days" in capsys.readouterr().out
+
+
+def test_reads_past_the_first_page_so_the_gallon_is_not_cut_off():
+    # Real case: the store-brand 2% gallon was result 51+ for "milk" and went missing.
+    from fake_kroger import product
+    filler = [product(str(i), f"Horizon Organic Shelf Stable Milk {i}", "8 fl oz", 1.5, brand="Horizon Organic") for i in range(60)]
+    gallon = product("g", "Kroger® 2% Reduced Fat Milk Gallon", "1 gal", 2.69)
+    c = compare(KrogerClient("i", "s", transport=FakeKroger(catalog={"01600878": filler + [gallon]})), "milk", "43402")
+    assert any(ch.variant.label() == "2% milk (store brand)" for ch in c.choices)
