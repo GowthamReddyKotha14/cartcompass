@@ -255,51 +255,6 @@ window.FINDINGS = {
    "spread": 0.0,
    "same_product": true,
    "trap": null
-  },
-  {
-   "item": "bananas",
-   "kind": "bananas (name brand)",
-   "unit": "gal",
-   "stores": [
-    {
-     "store": "Kroger Maumee",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
-    },
-    {
-     "store": "Kroger Waterville",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
-    },
-    {
-     "store": "Kroger Marketplace Perrysburg",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
-    },
-    {
-     "store": "Kroger Bowling Green",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
-    },
-    {
-     "store": "Kroger Marketplace Orchard Centre",
-     "unit_price": 6.98,
-     "price": 3.49,
-     "size": "1/2 gal",
-     "product": "Almond Breeze Almondmilk Blended with Real Bananas, 64 oz"
-    }
-   ],
-   "spread": 0.0,
-   "same_product": true,
-   "trap": null
   }
  ]
 };
