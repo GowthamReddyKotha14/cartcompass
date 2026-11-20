@@ -3,6 +3,9 @@
 Type "milk" and see which nearby store actually sells it cheapest, compared by
 **price per gallon**, not by sticker price.
 
+**Live site, with the real code running in your browser:**
+https://gowthamreddykotha14.github.io/cartcompass/
+
 Sticker prices mislead. At the Kroger on N Main St, Bowling Green, OH (checked
 November 2026), a half gallon of store-brand 2% milk was $1.89 and a gallon was
 $2.69. The half gallon looks cheaper and costs 40% more per gallon ($3.78).
@@ -93,8 +96,9 @@ cartcompass track      # record today's prices for an everyday basket
 make schedule          # macOS: do that every morning automatically
 ```
 
-**Status:** live Kroger search, receipt reading, price history and trip planning
-work. Next: a public showcase page.
+**Status:** live Kroger search, receipt reading, price history, trip planning
+and the showcase site all work. `make site` refreshes the site's findings from
+your price history.
 
 ## Data
 
